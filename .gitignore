@@ -1,0 +1,5 @@
+.vscode
+.venv
+snapshots
+excel
+*Session.sql
