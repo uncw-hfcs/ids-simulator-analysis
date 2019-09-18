@@ -38,8 +38,9 @@ def download_and_import():
     Popen(shlex.split(
         f"pg_restore --verbose --clean --no-acl --no-owner -h {PG_HOST} -U {PG_USERNAME} -d {PG_DATABASE} {snapshot}")).wait()
 
-    print(f"Run the following from .venv terminal: sqlacodegen postgresql:///{PG_DATABASE} --outfile models.py")
-    
+    print(
+        f"Run the following from .venv terminal: sqlacodegen postgresql:///{PG_DATABASE} --outfile models.py")
+
 
 def _to_dict(model):
     d = model.__dict__
@@ -50,10 +51,10 @@ def _to_dict(model):
 def export_excel():
     from models import User, Event, EventDecision
 
-    engine = create_engine(f'postgresql+psycopg2://{PG_USERNAME}:{PG_PASSWORD}@{PG_HOST}/{PG_DATABASE}')
+    engine = create_engine(
+        f'postgresql+psycopg2://{PG_USERNAME}:{PG_PASSWORD}@{PG_HOST}/{PG_DATABASE}')
     Session = sessionmaker(bind=engine)
     session = Session()
-
 
     if not os.path.exists(EXCEL_DIR):
         os.makedirs(EXCEL_DIR)
@@ -64,63 +65,103 @@ def export_excel():
                                   port="5432",
                                   database=PG_DATABASE)
 
-    events = { e.id : _to_dict(e) for e in session.query(Event) }
-    users = { u.username : _to_dict(u) for u in session.query(User) }
-    for username in users.keys():
-        decisions = [ _to_dict(d) for d in session.query(EventDecision).filter_by(user=username)]
+    events = {e.id: _to_dict(e) for e in session.query(Event)}
+    users = {u.username: _to_dict(u) for u in session.query(User)}
+    for username, user in users.items():
+        user_events = user['events'].split(',')
+        decisions = [_to_dict(d) for d in session.query(EventDecision).filter_by(user=username)] 
+        latest_decisions = {}
+        decision_counts = {}
+        i_dont_knows = 0
 
-        # For each decision, determine if it is correct and a TP/FP/TN/FN
         for d in decisions:
+            # Increment how many times a decision was made for a particular event
+            decision_counts[d["event_id"]] = decision_counts.get(d["event_id"], 0) + 1
+
             # Check events are 74, 75
             # "should_escalate" = 1 for TP, 0 for TN
             d['TP'] = False
             d['FP'] = False
             d['TN'] = False
             d['FN'] = False
-            should_escalate = True if events[d['event_id']]['should_escalate'] == '1' else False 
-            if should_escalate and d['escalate'] == "Escalate":
+            should_escalate = True if events[d['event_id']]['should_escalate'] == '1' else False
+            if d['escalate'] == "I don't know":
+                d['correct?'] = False
+                i_dont_knows += 1
+            elif should_escalate and d['escalate'] == "Escalate":
                 d['TP'] = True
+                d['state'] = 'TP'
                 d['correct?'] = True
             elif should_escalate and d['escalate'] == "Don't escalate":
                 d['FN'] = True
+                d['state'] = 'FN'
                 d['correct?'] = False
             elif not should_escalate and d['escalate'] == "Don't escalate":
                 d['TN'] = True
-                d['correct?'] = True            
+                d['state'] = 'TN'
+                d['correct?'] = True
             elif not should_escalate and d['escalate'] == 'Escalate':
                 d['FP'] = True
+                d['state'] = 'FP'
                 d['correct?'] = False
             else:
-                d['correct?'] = False
+                raise Exception("Encountered an unknown value for 'Escalate' in the event decision", d['escalate'])
 
+            # Add/replace the "most recent decision" for an event in a separate dictionary
+            if d["event_id"] not in latest_decisions or d["time_event_decision"] > latest_decisions[d["event_id"]]["time_event_decision"]:
+                # print("new latest:",
+                #     d["user"],
+                #     d["event_id"],
+                #     'None' if d["event_id"] not in latest_decisions else latest_decisions[d["event_id"]]["time_event_decision"],
+                #     "-->",
+                #     d["time_event_decision"])
+
+                latest_decisions[d["event_id"]] = d
 
         #TPs, FPs, TNs, FNs
         # specificity, sensitivity, precision
         # time on task
 
-        #for each event
-        # - get count of all decisions
-        # - get latest decision (may not have made one)
-        # - get count of undecided events
+        confusion = {
+            'TP' : 0,
+            'FP' : 0,
+            'TN' : 0,
+            'FN' : 0
+        }
+        num_correct = 0
+        confidence_sum = 0
+        for event_id, decision in latest_decisions.items():
+            if 'confidence' in decision:
+                confidence_sum += int(decision['confidence'])
+            if decision['correct?']:
+                num_correct += 1
+            # Generate confusion matrix for event decisions made. "I don't knows" are excluded
+            if 'state' in decision:
+                confusion[decision['state']] += 1
+        
+        specificity = 0 if confusion['TN'] + confusion['FP'] == 0 else confusion['TN'] / (confusion['TN'] + confusion['FP'])
+        sensitivity = 0 if confusion['TP'] + confusion['FN'] == 0 else confusion['TP'] / (confusion['TP'] + confusion['FN'])
+        precision = 0 if confusion['TP'] + confusion['FP'] == 0 else confusion['TP'] / (confusion['TP'] + confusion['FP'])
 
-        i_dont_knows = 0
-        for event_id, event in events.items():
-            for decision in decisions:
-                if decision['event_id'] == event_id:
-                 pass
-
-        #for each latest decision
-        # - counter for FPs, TPs, TNs, FNs
-
-            # TODO: Count number not decided at all.
-
+        if len(latest_decisions):
+            print(f"{username} - " 
+                f"{len(latest_decisions)}/{(len(user_events) + 3)} decided, "     # the 3 are the 2 check events + 1 obvious attack everyone got
+                f"{confidence_sum / len(latest_decisions) if latest_decisions else 0:0.1f} avg confidence, "
+                f"{num_correct * 100 / len(latest_decisions) if latest_decisions else 0:.0f}% correct, " 
+                f"{i_dont_knows} IDKs, "
+                f"{specificity * 100:.1f} specificity, "
+                f"{sensitivity * 100:.1f} sensitivity, "
+                f"{precision * 100:.1f} precision, "
+                f"{confusion}"
+                )
+        
     # with connection as conn:
     #     cursor = conn.cursor()
     #     # cursor.execute('select id, username, time_begin, time_end, questionnaire_complete, survey_complete, training_complete from "user"')
 
-    #     cursor.execute('''SELECT u.*, pqa.* 
-    #         FROM "user" AS u 
-    #         INNER JOIN prequestionnaire_answers as pqa 
+    #     cursor.execute('''SELECT u.*, pqa.*
+    #         FROM "user" AS u
+    #         INNER JOIN prequestionnaire_answers as pqa
     #         ON u.username = pqa.user''')
 
     #     users = cursor.fetchall()
@@ -143,8 +184,6 @@ def export_excel():
 
     #     row = 2
     #     for user in users:
-    #         # build user computations here
-
     #         for field in range(len(user)):
     #             ws.cell(row=row, column=field+1, value=user[field])
     #         row += 1
