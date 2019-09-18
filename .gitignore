@@ -3,3 +3,4 @@
 snapshots
 excel
 *Session.sql
+__pycache__
