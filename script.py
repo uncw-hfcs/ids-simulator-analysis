@@ -5,12 +5,12 @@ from pathlib import Path
 import psycopg2
 import shlex
 import shutil
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 from subprocess import Popen
 
 # Constants that may need to be changed based on local machine configuration
-HEROKU_APP = 'cry-wolf'
+HEROKU_APP = 'cry-wolf-dev'
 SNAPSHOTS_DIR = 'snapshots'
 PG_USERNAME = 'postgres'
 PG_PASSWORD = 'postgres'
@@ -118,11 +118,13 @@ def compute_results(session, decided_only=False):
             'FN' : 0
         }
         num_correct = 0
+        num_with_confidence = 0
         confidence_sum = 0
         # Look at most recent decisions to compute correctness, confidence, and confusion matrix
         for decision in latest_decisions.values():
-            if 'confidence' in decision:
+            if 'confidence' in decision and decision['confidence'] != 'None':
                 confidence_sum += int(decision['confidence'])
+                num_with_confidence += 1
             if decision['correct?']:
                 num_correct += 1
             # Generate confusion matrix for event decisions made. "I don't knows" are excluded
@@ -136,7 +138,7 @@ def compute_results(session, decided_only=False):
         if len(latest_decisions):
             print(f"{username} - " 
                 f"{len(latest_decisions)}/{(len(user_events) + 3)} decided, "     # the 3 are the 2 check events + 1 obvious attack everyone got
-                f"{confidence_sum / len(latest_decisions) if latest_decisions else 0:0.1f} avg confidence, "
+                f"{confidence_sum / num_with_confidence if latest_decisions else 0:0.1f} avg confidence, "
                 f"{num_correct * 100 / len(latest_decisions) if latest_decisions else 0:.0f}% correct, " 
                 f"{i_dont_knows} IDKs, "
                 f"{specificity * 100:.1f} specificity, "
@@ -162,12 +164,12 @@ def compute_results(session, decided_only=False):
         
         # get prequestionnaire answers for user and rename dictionary keys with prefix 'preq_'
         preq = {}
-        for k, v in _to_dict(session.query(PrequestionnaireAnswer).filter_by(user=username).first()).items():
+        for k, v in _to_dict(session.query(PrequestionnaireAnswer).filter_by(user=username).order_by(desc(PrequestionnaireAnswer.timestamp)).first()).items():
             preq[f'preq_{k}'] = v
 
         # get survey answers for user and rename dictionary keys with prefix 'surv_'
         survey = {}
-        for k, v in _to_dict(session.query(SurveyAnswer).filter_by(user=username).first()).items():
+        for k, v in _to_dict(session.query(SurveyAnswer).filter_by(user=username).order_by(desc(SurveyAnswer.timestamp)).first()).items():
             survey[f'surv_{k}'] = v
         
         # create 'master' user data with user, computations, prequestionnaire answers, and survey answers
@@ -269,7 +271,7 @@ if __name__ == "__main__":
     # 0. Must have run 'heroku login' from prior to running this script
 
     # 1. download_and_import first. Must manually generate models after that.
-    # download_and_import()
+    download_and_import()
 
     # 2. Manually generate models using sqlacodegen string from 1.
 
