@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from subprocess import Popen
 
 # Constants that may need to be changed based on local machine configuration
-HEROKU_APP = 'cry-wolf-dev'
+HEROKU_APP = 'cry-wolf'
 SNAPSHOTS_DIR = 'snapshots'
 PG_USERNAME = 'postgres'
 PG_PASSWORD = 'postgres'
