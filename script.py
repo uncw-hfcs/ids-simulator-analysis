@@ -127,10 +127,16 @@ def compute_results(session, decided_only=False):
         # Look at most recent decisions to compute correctness, confidence, and confusion matrix
         for eventid, decision in latest_decisions.items():
             if eventid == 74:
-                print(decision)
+                if decision['escalate'] == 'Escalate':
+                    check_score += 1
+                if decision['confidence'] == '2':
+                    check_score += 1
                 continue
             elif eventid == 75:
-                print(decision)
+                if decision['escalate'] == "Don't escalate":
+                    check_score += 1
+                if decision['confidence'] == '4':
+                    check_score += 1
                 continue
 
             if 'confidence' in decision and decision['confidence'] != 'None':
@@ -157,7 +163,8 @@ def compute_results(session, decided_only=False):
                 f"{specificity * 100:.1f} specificity, "
                 f"{sensitivity * 100:.1f} sensitivity, "
                 f"{precision * 100:.1f} precision, "
-                f"{confusion}"
+                f"{confusion}, "
+                f"{check_score} check_score"
                 )
         
         # Add computed values into user dictionary
@@ -174,6 +181,7 @@ def compute_results(session, decided_only=False):
         user['FP'] = confusion['FP']
         user['TN'] = confusion['TN']
         user['FN'] = confusion['FN']
+        user['check_score'] = check_score
         
         # get prequestionnaire answers for user and rename dictionary keys with prefix 'preq_'
         preq = {}
@@ -209,6 +217,7 @@ def write_excel(results, session):
         'questionnaire_complete', 
         'training_complete',
         'survey_complete', 
+        'check_score',
         'decided',
         'perc_decided',
         'avg_confidence',
