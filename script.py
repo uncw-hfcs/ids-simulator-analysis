@@ -63,13 +63,12 @@ def compute_results(session, decided_only=False):
         decisions = [_to_dict(d) for d in session.query(EventDecision).filter_by(user=username)] 
         latest_decisions = {}
         decision_counts = {}
-        i_dont_knows = 0
 
+        # for each decision, increment a counter for that event, compute determine classification correctness, and possible add to latest decisions
         for d in decisions:
             # Increment how many times a decision was made for a particular event
             decision_counts[d["event_id"]] = decision_counts.get(d["event_id"], 0) + 1
-
-            # TODO: Do something with "Check" events - ids 74, 75
+           
             d['TP'] = False
             d['FP'] = False
             d['TN'] = False
@@ -111,6 +110,8 @@ def compute_results(session, decided_only=False):
 
                 latest_decisions[d["event_id"]] = d
 
+
+        # begin user-level stat computation
         confusion = {
             'TP' : 0,
             'FP' : 0,
@@ -120,8 +121,18 @@ def compute_results(session, decided_only=False):
         num_correct = 0
         num_with_confidence = 0
         confidence_sum = 0
+        i_dont_knows = 0
+        check_score = 0
+
         # Look at most recent decisions to compute correctness, confidence, and confusion matrix
-        for decision in latest_decisions.values():
+        for eventid, decision in latest_decisions.items():
+            if eventid == 74:
+                print(decision)
+                continue
+            elif eventid == 75:
+                print(decision)
+                continue
+
             if 'confidence' in decision and decision['confidence'] != 'None':
                 confidence_sum += int(decision['confidence'])
                 num_with_confidence += 1
@@ -130,6 +141,8 @@ def compute_results(session, decided_only=False):
             # Generate confusion matrix for event decisions made. "I don't knows" are excluded
             if 'state' in decision:
                 confusion[decision['state']] += 1
+            if d['escalate'] == "I don't know":
+                i_dont_knows += 1
         
         specificity = 0 if confusion['TN'] + confusion['FP'] == 0 else confusion['TN'] / (confusion['TN'] + confusion['FP'])
         sensitivity = 0 if confusion['TP'] + confusion['FN'] == 0 else confusion['TP'] / (confusion['TP'] + confusion['FN'])
@@ -271,7 +284,7 @@ if __name__ == "__main__":
     # 0. Must have run 'heroku login' from prior to running this script
 
     # 1. download_and_import first. Must manually generate models after that.
-    download_and_import()
+    # download_and_import()
 
     # 2. Manually generate models using sqlacodegen string from 1.
 
