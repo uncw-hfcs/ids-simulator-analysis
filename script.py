@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from subprocess import Popen
 
 # Constants that may need to be changed based on local machine configuration
-HEROKU_APP = 'cry-wolf'
+HEROKU_APP = 'cry-wolf-dev'
 SNAPSHOTS_DIR = 'snapshots'
 PG_USERNAME = 'postgres'
 PG_PASSWORD = 'postgres'
@@ -150,19 +150,19 @@ def compute_results(session, decided_only=False):
             if d['escalate'] == "I don't know":
                 i_dont_knows += 1
         
-        specificity = 0 if confusion['TN'] + confusion['FP'] == 0 else confusion['TN'] / (confusion['TN'] + confusion['FP'])
-        sensitivity = 0 if confusion['TP'] + confusion['FN'] == 0 else confusion['TP'] / (confusion['TP'] + confusion['FN'])
-        precision = 0 if confusion['TP'] + confusion['FP'] == 0 else confusion['TP'] / (confusion['TP'] + confusion['FP'])
+        specificity = 'N/A' if confusion['TN'] + confusion['FP'] == 0 else confusion['TN'] / (confusion['TN'] + confusion['FP'])
+        sensitivity = 'N/A' if confusion['TP'] + confusion['FN'] == 0 else confusion['TP'] / (confusion['TP'] + confusion['FN'])
+        precision = 'N/A' if confusion['TP'] + confusion['FP'] == 0 else confusion['TP'] / (confusion['TP'] + confusion['FP'])
 
         if len(latest_decisions):
             print(f"{username} - " 
                 f"{len(latest_decisions)}/{(len(user_events) + 3)} decided, "     # the 3 are the 2 check events + 1 obvious attack everyone got
-                f"{confidence_sum / num_with_confidence if latest_decisions else 0:0.1f} avg confidence, "
-                f"{num_correct * 100 / len(latest_decisions) if latest_decisions else 0:.0f}% correct, " 
+                f"{confidence_sum / num_with_confidence if latest_decisions else 'N/A'} avg confidence, "
+                f"{num_correct * 100 / len(latest_decisions) if latest_decisions else 'N/A'}% correct, " 
                 f"{i_dont_knows} IDKs, "
-                f"{specificity * 100:.1f} specificity, "
-                f"{sensitivity * 100:.1f} sensitivity, "
-                f"{precision * 100:.1f} precision, "
+                f"{specificity} specificity, "
+                f"{sensitivity} sensitivity, "
+                f"{precision} precision, "
                 f"{confusion}, "
                 f"{check_score} check_score"
                 )
@@ -170,9 +170,9 @@ def compute_results(session, decided_only=False):
         # Add computed values into user dictionary
         user['decided'] = len(latest_decisions)
         user['perc_decided'] = len(latest_decisions) * 100 / (len(user_events) + 3)
-        user['avg_confidence'] = confidence_sum / len(latest_decisions) if latest_decisions else 0
+        user['avg_confidence'] = confidence_sum / len(latest_decisions) if latest_decisions else 'N/A'
         user['correct'] = num_correct
-        user['perc_correct'] = num_correct * 100 / len(latest_decisions) if latest_decisions else 0
+        user['perc_correct'] = num_correct * 100 / len(latest_decisions) if latest_decisions else 'N/A'
         user['i_dont_knows'] = i_dont_knows
         user['sensitivity'] = sensitivity
         user['specificity'] = specificity
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     # 0. Must have run 'heroku login' from prior to running this script
 
     # 1. download_and_import first. Must manually generate models after that.
-    download_and_import()
+    # download_and_import()
 
     # 2. Manually generate models using sqlacodegen string from 1.
 
