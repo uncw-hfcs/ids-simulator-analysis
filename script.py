@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from openpyxl import Workbook
 import os
 from pathlib import Path
@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from subprocess import Popen
 
 # Constants that may need to be changed based on local machine configuration
-HEROKU_APP = 'cry-wolf-dev'
+HEROKU_APP = 'cry-wolf'
 SNAPSHOTS_DIR = 'snapshots'
 PG_USERNAME = 'postgres'
 PG_PASSWORD = 'postgres'
@@ -60,12 +60,17 @@ def compute_results(session, decided_only=False):
         user_events = user['events'].split(',')
 
         # Get all of the decisions made for events by a user
-        decisions = [_to_dict(d) for d in session.query(EventDecision).filter_by(user=username)] 
+        decisions = [_to_dict(d) for d in session.query(EventDecision).filter_by(user=username).order_by(EventDecision.time_event_decision)] 
+
+        first_decisions = {}
         latest_decisions = {}
         decision_counts = {}
 
         # for each decision, increment a counter for that event, compute determine classification correctness, and possible add to latest decisions
         for d in decisions:
+            # Store first decision made for an event_id
+            if d["event_id"] not in first_decisions:
+                first_decisions[d["event_id"]] = d
             # Increment how many times a decision was made for a particular event
             decision_counts[d["event_id"]] = decision_counts.get(d["event_id"], 0) + 1
            
@@ -112,6 +117,13 @@ def compute_results(session, decided_only=False):
 
 
         # begin user-level stat computation
+
+        # sum of delta between every event's first decision and its first click
+        total_first_decision_first_click_delta = timedelta(hours=0)
+        for k, v in first_decisions.items():
+            event_clicked = session.query(EventClicked).filter_by(user=username, event_id=k).order_by(EventClicked.time_event_click).first()
+            total_first_decision_first_click_delta += v["time_event_decision"] - event_clicked.time_event_click
+
         confusion = {
             'TP' : 0,
             'FP' : 0,
@@ -164,7 +176,8 @@ def compute_results(session, decided_only=False):
                 f"{sensitivity} sensitivity, "
                 f"{precision} precision, "
                 f"{confusion}, "
-                f"{check_score} check_score"
+                f"{check_score} check_score, "
+                f"{total_first_decision_first_click_delta / len(latest_decisions) if latest_decisions else 'N/A'} avg time delta"
                 )
         
         # Add computed values into user dictionary
@@ -182,6 +195,7 @@ def compute_results(session, decided_only=False):
         user['TN'] = confusion['TN']
         user['FN'] = confusion['FN']
         user['check_score'] = check_score
+        user['avg_first_decision_first_click_delta'] = total_first_decision_first_click_delta / len(latest_decisions) if latest_decisions else 'N/A'
         
         # get prequestionnaire answers for user and rename dictionary keys with prefix 'preq_'
         preq = {}
@@ -214,6 +228,7 @@ def write_excel(results, session):
         'group',
         'time_begin', 
         'time_end',
+        'avg_first_decision_first_click_delta',
         'questionnaire_complete', 
         'training_complete',
         'survey_complete', 
@@ -293,7 +308,7 @@ if __name__ == "__main__":
     # 0. Must have run 'heroku login' from prior to running this script
 
     # 1. download_and_import first. Must manually generate models after that.
-    # download_and_import()
+    download_and_import()
 
     # 2. Manually generate models using sqlacodegen string from 1.
 
