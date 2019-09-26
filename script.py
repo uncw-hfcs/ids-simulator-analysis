@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from collections import OrderedDict
 from openpyxl import Workbook
 import os
 from pathlib import Path
@@ -54,6 +55,7 @@ def compute_results(session, decided_only=False):
     events = {e.id: _to_dict(e) for e in session.query(Event)}
     users = {u.username: _to_dict(u) for u in session.query(User)}
 
+    user_event_deltas = {}
     results = []
 
     for username, user in users.items():
@@ -62,7 +64,7 @@ def compute_results(session, decided_only=False):
         # Get all of the decisions made for events by a user
         decisions = [_to_dict(d) for d in session.query(EventDecision).filter_by(user=username).order_by(EventDecision.time_event_decision)] 
 
-        first_decisions = {}
+        first_decisions = OrderedDict()
         latest_decisions = {}
         decision_counts = {}
 
@@ -120,9 +122,14 @@ def compute_results(session, decided_only=False):
 
         # sum of delta between every event's first decision and its first click
         total_first_decision_first_click_delta = timedelta(hours=0)
-        for k, v in first_decisions.items():
+        event_deltas = []
+        for k, v in first_decisions.items():            
             event_clicked = session.query(EventClicked).filter_by(user=username, event_id=k).order_by(EventClicked.time_event_click).first()
-            total_first_decision_first_click_delta += v["time_event_decision"] - event_clicked.time_event_click
+            delta = v["time_event_decision"] - event_clicked.time_event_click
+            event_deltas.append(delta)
+            total_first_decision_first_click_delta += delta
+
+        
 
         confusion = {
             'TP' : 0,
@@ -210,10 +217,11 @@ def compute_results(session, decided_only=False):
         # create 'master' user data with user, computations, prequestionnaire answers, and survey answers
         if not decided_only or user['decided'] > 0:
             results.append({**user, **preq, **survey})  
+            user_event_deltas[username] = event_deltas
+
+    return results, user_event_deltas
     
-    return results
-    
-def write_excel(results, session):
+def write_excel(results, user_event_deltas, session):
     if not os.path.exists(EXCEL_DIR):
         os.makedirs(EXCEL_DIR)
     excel_file = Path(EXCEL_DIR, f'{HEROKU_APP}_{datetime.now().strftime("%Y%m%d_%H-%M-%S")}.xlsx')
@@ -289,6 +297,17 @@ def write_excel(results, session):
     _create_sheet_for_table(wb, 'EventDecision', EventDecision)
     _create_sheet_for_table(wb, 'SurveyAnswer', SurveyAnswer)
 
+    ws = wb.create_sheet('time_on_event')
+    
+    row = 1
+    for k, v in user_event_deltas.items():
+        ws.cell(row=row, column=1, value=k)
+        col = 2
+        for event_delta in v:
+            ws.cell(row=row, column=col, value=event_delta)
+            col += 1
+        row += 1
+
     wb.save(excel_file)
 
 def _create_sheet_for_table(wb, sheet_name, model):
@@ -308,7 +327,7 @@ if __name__ == "__main__":
     # 0. Must have run 'heroku login' from prior to running this script
 
     # 1. download_and_import first. Must manually generate models after that.
-    download_and_import()
+    # download_and_import()
 
     # 2. Manually generate models using sqlacodegen string from 1.
 
@@ -317,9 +336,9 @@ if __name__ == "__main__":
     Session = sessionmaker(bind=engine)
     session = Session()
     from models import User, Event, EventClicked, EventDecision, PrequestionnaireAnswer, TrainingEvent, TrainingEventDecision, SurveyAnswer
-    results = compute_results(session, decided_only=True)
+    results, user_event_deltas = compute_results(session, decided_only=True)
 
     # 4. write_excel
-    write_excel(results, session)
+    write_excel(results, user_event_deltas, session)
 
     session.close()
