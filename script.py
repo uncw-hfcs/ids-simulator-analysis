@@ -327,7 +327,7 @@ if __name__ == "__main__":
     # 0. Must have run 'heroku login' from prior to running this script
 
     # 1. download_and_import first. Must manually generate models after that.
-    # download_and_import()
+    download_and_import()
 
     # 2. Manually generate models using sqlacodegen string from 1.
 
