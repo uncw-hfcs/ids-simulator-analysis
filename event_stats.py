@@ -37,6 +37,11 @@ def calc_confusion(user, events, event_decisions):
             user[decision.event_id] = 'FP' if decision.escalate == 'Escalate' else 'TN'            
     return user    
 
+
+def set_group(user, measure, median_value):
+    user[f'{measure}_group'] = "High" if user[measure] >= median_value else "Low"
+    return user
+
 file = Path('backups') / 'cry-wolf_20191021_13-51-49_MIS310.xlsx'
 
 events = pd.read_excel(file, sheet_name='Event')
@@ -73,8 +78,36 @@ users['sensitivity'] = users['TP'] / (users['TP'] + users['FN'])
 users['specificity'] = users['TN'] / (users['TN'] + users['FP'])
 users['precision'] = users['TP'] / (users['TP'] + users['FP'])
 
+master = pd.read_excel(file, sheet_name='master')
+master['time_on_task'] = master.time_end - master.time_begin
+user_info = master[['username', 'time_on_task', 'check_score']]
+user_info.rename(columns={"username": "user"}, inplace=True)
 
+users = pd.merge(users, user_info, how='left', on=['user'])
+# Remove user 'awiv3' whose check_score == 2. It was determined to exclude him from analysis. 
+# We keep check_score = 3 (typo) and = 0 because that user (wgff3) intionally picked wrong answers.
+# The check events (ids 74-75) are not included in correctness/confusion matrix.
+users = users[users.user != 'awiv3']
+users.drop(columns=['check_score'], inplace=True)
+
+median_sensitivity = users['sensitivity'].median().copy()
+median_specificity = users['specificity'].median().copy()
+median_precision = users['precision'].median().copy()
+
+users = users.apply(set_group, axis=1, args=('sensitivity', median_sensitivity))
+users = users.apply(set_group, axis=1, args=('specificity', median_specificity))
+users = users.apply(set_group, axis=1, args=('precision', median_precision))
 
 print(users.head())
+
+
+
+# users['group'] = users.user.str[-1:]
+# median_sensitivity = users.groupby(users.group)[['sensitivity']].median().copy()
+# median_specificity = users.groupby(users.group)[['specificity']].median().copy()
+# median_precision = users.groupby(users.group)[['precision']].median().copy()
+# users['specificity_group'] = 
+# print(median_precision['precision'])
+# print(f"Sensititivy median: {users.groupby(['sensitivity'].median()}")
 
 
