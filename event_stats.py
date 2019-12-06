@@ -42,6 +42,7 @@ def set_group(user, measure, median_value):
     user[f'{measure}_group'] = "High" if user[measure] >= median_value else "Low"
     return user
 
+
 file = Path('backups') / 'cry-wolf_20191021_13-51-49_MIS310.xlsx'
 
 events = pd.read_excel(file, sheet_name='Event')
@@ -61,12 +62,26 @@ print(f"Dropped {orig_len - len(event_decisions)} duplicate decisions keeping mo
 events['should_escalate'] = events.apply(normalize_answer, axis=1)
 
 # Calculate correctness measures per group and append onto dataframe
-events = events.apply(calc_difficulty, axis=1, args=(event_decisions,))
+# events = events.apply(calc_difficulty, axis=1, args=(event_decisions,))
 
 # Compute confusion matrix for each user
 users = pd.DataFrame(event_decisions.user.unique(), columns=['user'])
 event_ids = sorted(list(event_decisions.event_id.unique()))
 users = users.reindex(columns = ['user'] + event_ids)
+
+# Remove user 'awiv3' whose check_score == 2. It was determined to exclude him from analysis. 
+# We keep check_score = 3 (typo) and = 0 because that user (wgff3) intionally picked wrong answers.
+# The check events (ids 74-75) are not included in correctness/confusion matrix.
+users = users[users.user != 'awiv3']
+
+# Get user time on task
+master = pd.read_excel(file, sheet_name='master')
+master['time_on_task'] = master.time_end - master.time_begin
+user_info = master[['username', 'time_on_task']]
+user_info.rename(columns={"username": "user"}, inplace=True)
+users = pd.merge(users, user_info, how='left', on=['user'])
+
+# Compute confusion matrix for each user
 users = users.apply(calc_confusion, axis=1, args=(events, event_decisions))
 users['TP'] = (users[event_ids] == 'TP').sum(axis=1)
 users['FP'] = (users[event_ids] == 'FP').sum(axis=1)
@@ -78,36 +93,36 @@ users['sensitivity'] = users['TP'] / (users['TP'] + users['FN'])
 users['specificity'] = users['TN'] / (users['TN'] + users['FP'])
 users['precision'] = users['TP'] / (users['TP'] + users['FP'])
 
-master = pd.read_excel(file, sheet_name='master')
-master['time_on_task'] = master.time_end - master.time_begin
-user_info = master[['username', 'time_on_task', 'check_score']]
-user_info.rename(columns={"username": "user"}, inplace=True)
+# Interpolate group value
+users['group'] = users.user.str[-1:]
 
-users = pd.merge(users, user_info, how='left', on=['user'])
-# Remove user 'awiv3' whose check_score == 2. It was determined to exclude him from analysis. 
-# We keep check_score = 3 (typo) and = 0 because that user (wgff3) intionally picked wrong answers.
-# The check events (ids 74-75) are not included in correctness/confusion matrix.
-users = users[users.user != 'awiv3']
-users.drop(columns=['check_score'], inplace=True)
+g50 = users[users.group == '1']
+g96 = users[users.group == '3']
+group_dfs = [g50, g96]
 
-median_sensitivity = users['sensitivity'].median().copy()
-median_specificity = users['specificity'].median().copy()
-median_precision = users['precision'].median().copy()
+for df in group_dfs:
+    df = df.dropna(axis=1, how='all').copy()
+    event_cols = [num for num in list(df.columns) if isinstance(num, np.int64)]
 
-users = users.apply(set_group, axis=1, args=('sensitivity', median_sensitivity))
-users = users.apply(set_group, axis=1, args=('specificity', median_specificity))
-users = users.apply(set_group, axis=1, args=('precision', median_precision))
+    for m in ['sensitivity', 'specificity', 'precision']:
+        high = pd.DataFrame()
+        low = pd.DataFrame()
+        median = df[m].median().copy()
+        df = df.apply(set_group, axis=1, args=(m, median))
+        # print(f"{m.title()} median: {median}")
 
-print(users.head())
+        size = round(len(df)*0.27)
+        try:
+            high = df[df[f'{m}_group'] == "High"].sample(n=size)
+            low = df[df[f'{m}_group'] == "Low"].sample(n=size)
 
+            for e in event_cols:
+                high_correct = len(high[high[e] == 'TP']) + len(high[high[e] == 'TN'])
+                low_correct = len(low[low[e] == 'TP']) + len(low[low[e] == 'TN'])
+                print(f"Event {e} difficulty: {(high_correct - low_correct)/len(high)}")
+        except ValueError:
+            print(f"Cannot compute {m} difficulty")
+        
 
-
-# users['group'] = users.user.str[-1:]
-# median_sensitivity = users.groupby(users.group)[['sensitivity']].median().copy()
-# median_specificity = users.groupby(users.group)[['specificity']].median().copy()
-# median_precision = users.groupby(users.group)[['precision']].median().copy()
-# users['specificity_group'] = 
-# print(median_precision['precision'])
-# print(f"Sensititivy median: {users.groupby(['sensitivity'].median()}")
 
 
