@@ -38,9 +38,7 @@ def calc_confusion(user, events, event_decisions):
     return user    
 
 
-def set_group(user, measure, median_value):
-    user[f'{measure}_group'] = "High" if user[measure] >= median_value else "Low"
-    return user
+
 
 
 file = Path('backups') / 'cry-wolf_20191021_13-51-49_MIS310.xlsx'
@@ -48,7 +46,7 @@ file = Path('backups') / 'cry-wolf_20191021_13-51-49_MIS310.xlsx'
 events = pd.read_excel(file, sheet_name='Event')
 event_decisions = pd.read_excel(file, sheet_name='EventDecision')
 
-# Need to drop "check" events
+# Drop "check" events from analysis
 events = events[(events['id'] != 74) & (events['id'] != 75)]
 event_decisions = event_decisions[(event_decisions.event_id != 74) & (event_decisions.event_id != 75)]
 
@@ -61,20 +59,19 @@ print(f"Dropped {orig_len - len(event_decisions)} duplicate decisions keeping mo
 # Normalize 'should_escalate' column and 'event_decision' column values
 events['should_escalate'] = events.apply(normalize_answer, axis=1)
 
-# Calculate correctness measures per group and append onto dataframe
-# events = events.apply(calc_difficulty, axis=1, args=(event_decisions,))
-
 # Compute confusion matrix for each user
 users = pd.DataFrame(event_decisions.user.unique(), columns=['user'])
 event_ids = sorted(list(event_decisions.event_id.unique()))
 users = users.reindex(columns = ['user'] + event_ids)
+# Extract group id
+users['group'] = users.user.str[-1:]
 
 # Remove user 'awiv3' whose check_score == 2. It was determined to exclude him from analysis. 
 # We keep check_score = 3 (typo) and = 0 because that user (wgff3) intionally picked wrong answers.
 # The check events (ids 74-75) are not included in correctness/confusion matrix.
 users = users[users.user != 'awiv3']
 
-# Get user time on task
+# Get user time on task. Not using this data currently -- may want to drop bottom quartile.
 master = pd.read_excel(file, sheet_name='master')
 master['time_on_task'] = master.time_end - master.time_begin
 user_info = master[['username', 'time_on_task']]
@@ -88,41 +85,42 @@ users['FP'] = (users[event_ids] == 'FP').sum(axis=1)
 users['FN'] = (users[event_ids] == 'FN').sum(axis=1)
 users['TN'] = (users[event_ids] == 'TN').sum(axis=1)
 
-# Compute performance measures per user
+# Compute performance measures for each user
 users['sensitivity'] = users['TP'] / (users['TP'] + users['FN'])
 users['specificity'] = users['TN'] / (users['TN'] + users['FP'])
 users['precision'] = users['TP'] / (users['TP'] + users['FP'])
+users['correctness'] = (users['TP'] + users['TN']) / (users['TP'] + users['FP'] + users['TN'] + users['FN'])
 
-# Interpolate group value
-users['group'] = users.user.str[-1:]
+# Compute per event difficulty based on user correctness. Difficulty is % of users correct: 0-100.
+event_results = pd.DataFrame([num for num in list(users.columns) if isinstance(num, np.int64)], columns=['id'])
+event_results['difficulty'] = [((users[e] == 'TP').sum() + (users[e] == 'TN').sum()) / users[e].notna().sum() for e in event_results['id']]
 
-g50 = users[users.group == '1']
-g96 = users[users.group == '3']
-group_dfs = [g50, g96]
 
-for df in group_dfs:
-    df = df.dropna(axis=1, how='all').copy()
-    event_cols = [num for num in list(df.columns) if isinstance(num, np.int64)]
+def calc_discrimination_index(event, label, high, low):
+    eid = event['id']
+    if high[eid].isna().all() or low[eid].isna().all():
+        event[label] = np.NaN
+    else:
+        high_correct = len(high[high[eid] == 'TP']) + len(high[high[eid] == 'TN'])
+        low_correct = len(low[low[eid] == 'TP']) + len(low[low[eid] == 'TN'])
+        event[label] = (high_correct - low_correct)/ max([len(high), len(low)])
+    return event
 
-    for m in ['sensitivity', 'specificity', 'precision']:
-        high = pd.DataFrame()
-        low = pd.DataFrame()
-        median = df[m].median().copy()
-        df = df.apply(set_group, axis=1, args=(m, median))
-        # print(f"{m.title()} median: {median}")
+# Calculate discrimination index for each event based on user correctness.
+# Treat different false alarm rate groups as different tests as they are, according to performance measures, testing different skills/constructs.
+for group in ['1', '3']:
+    df = users[users.group == group]
+    df.sort_values(by='correctness', ascending=False, inplace=True)
 
-        size = round(len(df)*0.27)
-        try:
-            high = df[df[f'{m}_group'] == "High"].sample(n=size)
-            low = df[df[f'{m}_group'] == "Low"].sample(n=size)
+    # Take the 27% highest and lowest performers from the group across all events        
+    size = round(len(df)*0.27)
+    event_results = event_results.apply(calc_discrimination_index, axis=1, args=(f'group{group}_D', df.head(n=size), df.tail(n=size)))
 
-            for e in event_cols:
-                high_correct = len(high[high[e] == 'TP']) + len(high[high[e] == 'TN'])
-                low_correct = len(low[low[e] == 'TP']) + len(low[low[e] == 'TN'])
-                print(f"Event {e} difficulty: {(high_correct - low_correct)/len(high)}")
-        except ValueError:
-            print(f"Cannot compute {m} difficulty")
-        
+# print(event_results.sort_values(by='difficulty').to_string())
+print(event_results.to_string())
+print(events.to_csv())
+    
+    
 
 
 
