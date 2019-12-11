@@ -1,0 +1,73 @@
+0	Tokyo	9	2	Telecom	Los Angeles	8	0	Hosting/server	0.09	98%
+0	Moscow	12	2	Telecom	Los Angeles	13	0	Hosting/server	1.22	95%
+0	Beijing	11	0	Telecom	Los Angeles	3	0	Hosting/server	0.75	95%
+0	Moscow	7	1	Telecom	Vancouver	7	1	Hosting/server	1.33	100%
+0	Moscow	9	2	Telecom	Tokyo	7	3	Hosting/server	0.6	90%
+0	Beijing	9	0	Telecom	Tokyo	6	3	Hosting/server	0.79	90%
+0	Beijing	13	3	Telecom	Vancouver	9	0	Hosting/server	0.08	100%
+0	London	4	0	Telecom	Paris	13	1	Telecom	0.95	0%
+0	London	5	1	Telecom	Berlin	11	1	Telecom	1.22	0%
+0	Berlin	13	0	Telecom	Paris	11	1	Telecom	0.71	0%
+0	Paris	7	0	Telecom	Berlin	9	0	Telecom	1.3	0%
+0	Paris	7	1	Telecom	London	13	1	Telecom	0.47	0%
+0	Berlin	4	1	Telecom	London	4	3	Telecom	0.68	0%
+0	New York	12	0	Mobile/Cellular	London	11	3	Telecom	1.28	0%
+0	New York	8	0	Mobile/Cellular	Paris	13	3	Telecom	0.37	0%
+0	New York	9	2	Mobile/Cellular	Berlin	3	0	Telecom	0.89	0%
+0	New York	13	0	Mobile/Cellular	Tokyo	13	3	Telecom	1.11	0%
+0	Miami	3	2	Mobile/Cellular	London	12	0	Telecom	0.9	0%
+0	Miami	10	3	Mobile/Cellular	Paris	13	3	Telecom	0.61	0%
+0	Miami	5	1	Mobile/Cellular	Berlin	13	1	Telecom	0.16	0%
+0	Miami	12	2	Mobile/Cellular	Tokyo	5	0	Telecom	0.09	0%
+0	New York	3	1	Mobile/Cellular	Seattle	3	1	Mobile/Cellular	5.78	0%
+0	New York	5	0	Telecom	Los Angeles	12	1	Mobile/Cellular	5.36	0%
+0	New York	4	3	Mobile/Cellular	Miami	11	2	Telecom	2.85	0%
+0	New York	6	2	Mobile/Cellular	Vancouver	12	3	Telecom	5.53	0%
+0	New York	8	2	Mobile/Cellular	Toronto	6	0	Telecom	1.29	0%
+0	Seattle	8	1	Mobile/Cellular	Los Angeles	8	0	Telecom	2.48	0%
+0	Seattle	8	3	Mobile/Cellular	Miami	13	0	Telecom	5.65	0%
+0	Seattle	6	1	Telecom	Vancouver	4	3	Telecom	2.8	0%
+0	Seattle	12	2	Telecom	Toronto	5	2	Mobile/Cellular	4.32	0%
+0	Los Angeles	5	2	Mobile/Cellular	Miami	10	1	Mobile/Cellular	5	0%
+0	Los Angeles	12	0	Mobile/Cellular	Vancouver	3	3	Telecom	2.53	0%
+0	Los Angeles	11	0	Telecom	Toronto	12	0	Telecom	4.48	0%
+0	Miami	5	3	Telecom	Vancouver	6	2	Mobile/Cellular	8.15	0%
+0	Miami	11	3	Telecom	Toronto	6	2	Telecom	2.97	0%
+0	Vancouver	10	0	Telecom	Toronto	10	1	Mobile/Cellular	4.3	0%
+0	Seattle	13	0	Telecom	London	13	1	Hosting/server	0.41	53%
+0	New York	10	0	Telecom	Paris	10	3	Hosting/server	0.16	66%
+0	Miami	7	2	Telecom	Berlin	9	2	Hosting/server	1.22	51%
+0	Toronto	11	1	Telecom	Tokyo	3	3	Hosting/server	0.58	63%
+0	Los Angeles	10	2	Telecom	London	10	2	Hosting/server	0.56	57%
+0	Paris	11	3	Hosting/server	Vancouver	10	2	Telecom	0.1	69%
+0	Berlin	7	0	Hosting/server	New York	12	1	Telecom	1.18	71%
+0	Tokyo	4	0	Hosting/server	Los Angeles	8	3	Telecom	0.9	71%
+0	Paris	9	2	Hosting/server	Tokyo	7	3	Telecom	1.28	55%
+0	Berlin	11	0	Hosting/server	Tokyo	11	1	Telecom	1	55%
+0	London	6	1	Hosting/server	Tokyo	6	3	Telecom	0.95	69%
+0	Tokyo	6	1	Hosting/server	London	6	3	Telecom	0.95	69%
+1	New York	7	3	Telecom	Moscow	7	3	Telecom	1.68	0%
+1	New York	8	2	Telecom	Beijing	7	3	Hosting/server	1.84	28%
+1	Seattle	4	1	Telecom	Moscow	11	3	Telecom	1.75	0%
+1	Seattle	13	0	Telecom	Beijing	4	2	Telecom	0.77	0%
+1	Miami	10	3	Telecom	Beijing	12	0	Telecom	0.65	0%
+1	Toronto	9	0	Telecom	Moscow	12	0	Telecom	0.68	0%
+1	London	5	3	Telecom	Moscow	10	0	Telecom	2.1	0%
+1	London	9	0	Telecom	Beijing	9	1	Hosting/server	1.76	26%
+1	Paris	8	3	Telecom	Moscow	3	3	Telecom	0.05	0%
+1	Paris	10	1	Telecom	Beijing	5	2	Telecom	2.43	0%
+1	Moscow	10	3	Telecom	Paris	10	3	Hosting/server	0.34	0%
+1	Berlin	12	3	Telecom	Beijing	10	0	Telecom	1.75	0%
+1	Beijing	12	3	Telecom	Berlin	10	0	Telecom	1.75	0%
+1	Los Angeles	11	0	Telecom	Moscow	8	2	Telecom	1.44	0%
+1	Vancouver	6	3	Telecom	Moscow	3	3	Telecom	0.63	0%
+1	Vancouver	8	1	Telecom	Beijing	3	1	Telecom	2.15	0%
+1	London	0	49	Telecom	Paris	3	1	Hosting/server	0.32	38%
+1	London	1	100+	Telecom	Berlin	10	1	Telecom	1.65	0%
+1	London	6	1	Telecom	Tokyo	1	28	Telecom	0.46	0%
+1	Paris	3	0	Telecom	Berlin	0	100+	Hosting/server	1.16	34%
+1	Paris	8	0	Telecom	Tokyo	8	1	Telecom	1.77	0%
+1	Berlin	5	0	Telecom	Tokyo	12	3	Telecom	1.91	0%
+1	New York	4	2	Telecom	Vancouver	10	3	Hosting/server	0.64	36%
+1	Los Angeles	6	2	Telecom	Toronto	2	100+	Telecom	0.81	0%
+1	Moscow	0	100+	Telecom	Beijing	1	100+	Telecom	0.15	0%
