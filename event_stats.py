@@ -144,6 +144,22 @@ event_results['type'] = event_types['comments']
 
 # print(event_results.sort_values(by='difficulty').to_string())
 # print(event_results.to_string())
+print(event_results.sort_values(by='group3_D', ascending=False).to_string())
+# print(event_results[['difficulty', 'group1_D', 'group3_D']].describe())
+
+# TODO: Count difficulty > 0.923077 (75%) and D's < 0.4 - things that are too easy
+# TODO: Which scenarios were easiest?
+# TODO: Count difficulty < 0.823529 (50%) and D's < 0.4 - things that are too hard
+# TODO: Which scenarios were trickiest?
+# TODO: Which scenarios were least discriminatory because either too easy or too hard?
+
+# TODO: Items where D > 0.4
+# TODO: Which scenarios were most discriminatory?
+
+
+
+
+
 # print(events.to_csv())
     
     
