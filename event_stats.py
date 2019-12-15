@@ -93,7 +93,7 @@ users['correctness'] = (users['TP'] + users['TN']) / (users['TP'] + users['FP'] 
 
 # Compute per event difficulty based on user correctness. Difficulty is % of users correct: 0-100.
 event_results = pd.DataFrame([num for num in list(users.columns) if isinstance(num, np.int64)], columns=['id'])
-event_results['difficulty'] = [((users[e] == 'TP').sum() + (users[e] == 'TN').sum()) / users[e].notna().sum() for e in event_results['id']]
+# event_results['difficulty'] = [((users[e] == 'TP').sum() + (users[e] == 'TN').sum()) / users[e].notna().sum() for e in event_results['id']]
 
 
 def calc_discrimination_index(event, label, high, low):
@@ -110,12 +110,14 @@ def calc_discrimination_index(event, label, high, low):
 # Treat different false alarm rate groups as different tests as they are, according to performance measures, testing different skills/constructs.
 for group in ['1', '3']:
     df = users[users.group == group]
-    df.sort_values(by='correctness', ascending=False, inplace=True)
+    event_results[f'group{group}_diff'] = [((df[e] == 'TP').sum() + (df[e] == 'TN').sum()) / df[e].notna().sum() for e in event_results['id']]
 
+    df.sort_values(by='correctness', ascending=False, inplace=True)
     # Take the 27% highest and lowest performers from the group across all events        
     size = round(len(df)*0.27)
-    event_results = event_results.apply(calc_discrimination_index, axis=1, args=(f'group{group}_D', df.head(n=size), df.tail(n=size)))
-
+    high = df.head(n=size)
+    low = df.tail(n=size)
+    event_results = event_results.apply(calc_discrimination_index, axis=1, args=(f'group{group}_D', high, low))
 
 event_types = pd.read_excel('events.xlsx', sheet_name='event_type')
 headers = [
@@ -145,20 +147,17 @@ event_results['type'] = event_types['comments']
 # print(event_results.sort_values(by='difficulty').to_string())
 # print(event_results.to_string())
 # print(event_results.sort_values(by='group3_D', ascending=False).to_string())
-print(event_results[['difficulty', 'group1_D', 'group3_D']].describe().to_latex(header=['difficulty', '50% D', '96% D'], float_format=lambda x: f'{x:10.2f}'))
+print(event_results[['group1_diff', 'group1_D', 'group3_diff', 'group3_D']].describe().to_latex(header=['50% p', '50% D', '96% p', '96% D'], float_format=lambda x: f'{x:10.2f}'))
 
 
-quantile_3 = event_results['difficulty'].quantile(q=0.75)
+# Count difficulty > Q3 and D < 0.4 - things that are too easy
+event_results['easiest_g1'] = (event_results.group1_diff >= event_results.group1_diff.quantile(q=0.75)) & (event_results.group1_D <= 0.4)
+event_results['easiest_g3'] = (event_results.group3_diff >= event_results.group3_diff.quantile(q=0.75)) & (event_results.group3_D <= 0.4)
+easiest = [event_results['easiest_g1'].sum(), event_results['easiest_g3'].sum()]
 
-# Count difficulty > 0.923077 (75%) and D's < 0.4 - things that are too easy
-event_results['easiest_g1'] = (event_results.difficulty >= quantile_3) & (event_results.group1_D <= 0.4)
-event_results['easiest_g3'] = (event_results.difficulty >= quantile_3) & (event_results.group3_D <= 0.4)
-easiest = [event_results['easiest_g1'].sum(), event_results['easiest_g1'].sum()]
-
-# Count difficulty < 0.823529 (50%) and D's < 0.4 - things that are too hard
-p_median = event_results.difficulty.median()
-event_results['hardest_g1'] = (event_results.difficulty < p_median) & (event_results.group1_D <= 0.4)
-event_results['hardest_g3'] = (event_results.difficulty < p_median) & (event_results.group3_D <= 0.4)
+# Count difficulty < median (50%) and D < 0.4 - things that are too hard
+event_results['hardest_g1'] = (event_results.group1_diff < event_results.group1_diff.median()) & (event_results.group1_D <= 0.4)
+event_results['hardest_g3'] = (event_results.group3_diff < event_results.group3_diff.median()) & (event_results.group3_D <= 0.4)
 hardest = [event_results['hardest_g1'].sum(), event_results['hardest_g3'].sum()]
 
 # Items where D > 0.4
@@ -170,7 +169,7 @@ print(d_summary.to_latex(escape=False))
 # TODO: Which scenarios were trickiest?
 # TODO: Which scenarios were least discriminatory because either too easy or too hard?
 # TODO: Which scenarios were most discriminatory?
-scenarios = event_results[['difficulty', 'group1_D', 'group3_D', 'type']].groupby(['type']).agg(['mean', 'count']).reset_index().set_index('type')
+scenarios = event_results[['group1_diff', 'group1_D', 'group3_diff', 'group3_D', 'type']].groupby(['type']).agg(['mean', 'count']).reset_index().set_index('type')
 print(scenarios.to_latex(float_format=lambda x: f'{x:10.2f}'))
 
 
