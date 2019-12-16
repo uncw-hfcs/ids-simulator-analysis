@@ -31,14 +31,14 @@ def calc_confusion(user, events, event_decisions):
     user_decisions = event_decisions[event_decisions.user == user.user]    
     for decision in user_decisions.itertuples():
         answer = events[events.id == decision.event_id].should_escalate.item()
-        if answer == 'Escalate':
+        # Exclude I don't knows
+        if decision.escalate == "I don't know":
+            user[decision.event_id] = np.NaN
+        elif answer == 'Escalate':
             user[decision.event_id] = 'TP' if decision.escalate == 'Escalate' else 'FN'
         else:
             user[decision.event_id] = 'FP' if decision.escalate == 'Escalate' else 'TN'            
     return user    
-
-
-
 
 
 file = Path('backups') / 'cry-wolf_20191021_13-51-49_MIS310.xlsx'
@@ -59,7 +59,7 @@ print(f"Dropped {orig_len - len(event_decisions)} duplicate decisions keeping mo
 # Normalize 'should_escalate' column and 'event_decision' column values
 events['should_escalate'] = events.apply(normalize_answer, axis=1)
 
-# Compute confusion matrix for each user
+# Create user dataframe to record their correctness for each event
 users = pd.DataFrame(event_decisions.user.unique(), columns=['user'])
 event_ids = sorted(list(event_decisions.event_id.unique()))
 users = users.reindex(columns = ['user'] + event_ids)
@@ -72,13 +72,13 @@ users['group'] = users.user.str[-1:]
 users = users[users.user != 'awiv3']
 
 # Get user time on task. Not using this data currently -- may want to drop bottom quartile.
-master = pd.read_excel(file, sheet_name='master')
-master['time_on_task'] = master.time_end - master.time_begin
-user_info = master[['username', 'time_on_task']]
-user_info.rename(columns={"username": "user"}, inplace=True)
-users = pd.merge(users, user_info, how='left', on=['user'])
+# master = pd.read_excel(file, sheet_name='master')
+# master['time_on_task'] = master.time_end - master.time_begin
+# user_info = master[['username', 'time_on_task']]
+# user_info.rename(columns={"username": "user"}, inplace=True)
+# users = pd.merge(users, user_info, how='left', on=['user'])
 
-# Compute confusion matrix for each user
+# Compute confusion matrix for each user, dropping "I don't know" answers
 users = users.apply(calc_confusion, axis=1, args=(events, event_decisions))
 users['TP'] = (users[event_ids] == 'TP').sum(axis=1)
 users['FP'] = (users[event_ids] == 'FP').sum(axis=1)
@@ -93,6 +93,8 @@ users['correctness'] = (users['TP'] + users['TN']) / (users['TP'] + users['FP'] 
 
 # Compute per event difficulty based on user correctness. Difficulty is % of users correct: 0-100.
 event_results = pd.DataFrame([num for num in list(users.columns) if isinstance(num, np.int64)], columns=['id'])
+
+# Overall difficulty - not using it since we are doing group-level metrics
 # event_results['difficulty'] = [((users[e] == 'TP').sum() + (users[e] == 'TN').sum()) / users[e].notna().sum() for e in event_results['id']]
 
 
@@ -110,10 +112,12 @@ def calc_discrimination_index(event, label, high, low):
 # Treat different false alarm rate groups as different tests as they are, according to performance measures, testing different skills/constructs.
 for group in ['1', '3']:
     df = users[users.group == group]
+    
+    # Compute difficulty score
     event_results[f'group{group}_diff'] = [((df[e] == 'TP').sum() + (df[e] == 'TN').sum()) / df[e].notna().sum() for e in event_results['id']]
 
+    # Take the 27% highest and lowest performers from the group across all events to calculate the discrimination index
     df.sort_values(by='correctness', ascending=False, inplace=True)
-    # Take the 27% highest and lowest performers from the group across all events        
     size = round(len(df)*0.27)
     high = df.head(n=size)
     low = df.tail(n=size)
@@ -136,8 +140,9 @@ headers = [
     'type'
 ]
 
-sample_ids = [52, 66, 2, 11, 18, 26, 40]
-event_samples = event_types[event_types['id'].isin(sample_ids)]
+# These are the events used as examples in the ACMSE paper
+# sample_ids = [52, 66, 2, 11, 18, 26, 40]
+# event_samples = event_types[event_types['id'].isin(sample_ids)]
 # with open('event_samples.tex', 'w') as tab:
 #     event_samples.to_latex(buf=tab, header=headers, index=False)
 
@@ -145,9 +150,11 @@ event_samples = event_types[event_types['id'].isin(sample_ids)]
 event_results['type'] = event_types['comments']
 
 # print(event_results.sort_values(by='difficulty').to_string())
-# print(event_results.to_string())
 # print(event_results.sort_values(by='group3_D', ascending=False).to_string())
-print(event_results[['group1_diff', 'group1_D', 'group3_diff', 'group3_D']].describe().to_latex(header=['50% p', '50% D', '96% p', '96% D'], float_format=lambda x: f'{x:10.2f}'))
+print(event_results[['group1_diff', 'group1_D', 'group3_diff', 'group3_D']].describe().to_latex(
+    header=['50\% $p$', '50\% $D$', '96\% $p$', '96\% $D$'], 
+    escape=False, 
+    float_format=lambda x: f'{x:10.2f}'))
 
 
 # Count difficulty > Q3 and D < 0.4 - things that are too easy
@@ -162,15 +169,20 @@ hardest = [event_results['hardest_g1'].sum(), event_results['hardest_g3'].sum()]
 
 # Items where D > 0.4
 best = [len(event_results[(event_results.group1_D > 0.4)]), len(event_results[(event_results.group3_D > 0.4)])]
-d_summary = pd.DataFrame([easiest, hardest, best], index=['p \geq Q_3 and D \leq 0.4', 'p < Q_2 and D \leq 0.4', 'D > 0.4'], columns=['50\%', '96\%'])
+d_summary = pd.DataFrame([easiest, hardest, best], index=['$p \geq Q_3$ and $D \leq 0.4$', '$p < Q_2$ and $D \leq 0.4$', '$D > 0.4$'], columns=['50\%', '96\%'])
 print(d_summary.to_latex(escape=False))
 
 # TODO: Which scenarios were easiest?
 # TODO: Which scenarios were trickiest?
 # TODO: Which scenarios were least discriminatory because either too easy or too hard?
 # TODO: Which scenarios were most discriminatory?
-scenarios = event_results[['group1_diff', 'group1_D', 'group3_diff', 'group3_D', 'type']].groupby(['type']).agg(['mean', 'count']).reset_index().set_index('type')
-print(scenarios.to_latex(float_format=lambda x: f'{x:10.2f}'))
+scenarios = event_results[['group1_diff', 'group1_D', 'group3_diff', 'group3_D', 'type']]
+scenarios = scenarios.rename(columns={'group1_diff': '50\% $p$', 'group1_D':'50\% $D$', 'group3_diff': '96\% $p$', 'group3_D': '96\% $D$', 'type': 'scenario'})
+scenarios = scenarios.groupby(['scenario']).agg(['mean', 'count']).reset_index().set_index('scenario')
+print(scenarios.to_latex(
+    # header=[*(['mean', '$n$']*4)], 
+    escape=False, 
+    float_format=lambda x: f'{x:10.2f}'))
 
 
 
