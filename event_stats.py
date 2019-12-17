@@ -112,6 +112,7 @@ def calc_discrimination_index(event, label, high, low):
 # Treat different false alarm rate groups as different tests as they are, according to performance measures, testing different skills/constructs.
 for group in ['1', '3']:
     df = users[users.group == group]
+    print(f'len group {group}: {len(df)}')
     
     # Compute difficulty score
     event_results[f'group{group}_diff'] = [((df[e] == 'TP').sum() + (df[e] == 'TN').sum()) / df[e].notna().sum() for e in event_results['id']]
@@ -167,6 +168,8 @@ event_results['hardest_g1'] = (event_results.group1_diff < event_results.group1_
 event_results['hardest_g3'] = (event_results.group3_diff < event_results.group3_diff.median()) & (event_results.group3_D <= 0.4)
 hardest = [event_results['hardest_g1'].sum(), event_results['hardest_g3'].sum()]
 
+print(event_results[event_results.hardest_g1 | event_results.hardest_g3])
+
 # Items where D > 0.4
 best = [len(event_results[(event_results.group1_D > 0.4)]), len(event_results[(event_results.group3_D > 0.4)])]
 d_summary = pd.DataFrame([easiest, hardest, best], index=['$p \geq Q_3$ and $D \leq 0.4$', '$p < Q_2$ and $D \leq 0.4$', '$D > 0.4$'], columns=['50\%', '96\%'])
@@ -185,6 +188,7 @@ print(scenarios.to_latex(
     float_format=lambda x: f'{x:10.2f}'))
 
 
+print(event_results.to_string())
 
 
     
