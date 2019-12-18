@@ -168,27 +168,33 @@ event_results['hardest_g1'] = (event_results.group1_diff < event_results.group1_
 event_results['hardest_g3'] = (event_results.group3_diff < event_results.group3_diff.median()) & (event_results.group3_D <= 0.4)
 hardest = [event_results['hardest_g1'].sum(), event_results['hardest_g3'].sum()]
 
+# event_results['improvable_g1'] = (event_results.group1_D <= 0.4) & (event_results.group1_D >= 0.2)
+# event_results['improvable_g3'] = (event_results.group3_D <= 0.4) & (event_results.group3_D >= 0.2)
+# improvable = [event_results['improvable_g1'].sum(), event_results['improvable_g3'].sum()]
+
 print(event_results[event_results.hardest_g1 | event_results.hardest_g3])
 
 # Items where D > 0.4
 best = [len(event_results[(event_results.group1_D > 0.4)]), len(event_results[(event_results.group3_D > 0.4)])]
-d_summary = pd.DataFrame([easiest, hardest, best], index=['$p \geq Q_3$ and $D \leq 0.4$', '$p < Q_2$ and $D \leq 0.4$', '$D > 0.4$'], columns=['50\%', '96\%'])
+
+
+d_summary = pd.DataFrame([best, easiest, hardest], index=['$D > 0.4$ (best)', '$p \geq Q_3$ and $D \leq 0.4$ (too easy)', '$p < Q_2$ and $D \leq 0.4$ (too hard)'], columns=['50\% FAR', '96\% FAR'])
 print(d_summary.to_latex(escape=False))
 
 # TODO: Which scenarios were easiest?
 # TODO: Which scenarios were trickiest?
 # TODO: Which scenarios were least discriminatory because either too easy or too hard?
 # TODO: Which scenarios were most discriminatory?
-scenarios = event_results[['group1_diff', 'group1_D', 'group3_diff', 'group3_D', 'type']]
-scenarios = scenarios.rename(columns={'group1_diff': '50\% $p$', 'group1_D':'50\% $D$', 'group3_diff': '96\% $p$', 'group3_D': '96\% $D$', 'type': 'scenario'})
-scenarios = scenarios.groupby(['scenario']).agg(['mean', 'count']).reset_index().set_index('scenario')
-print(scenarios.to_latex(
-    # header=[*(['mean', '$n$']*4)], 
-    escape=False, 
-    float_format=lambda x: f'{x:10.2f}'))
+# scenarios = event_results[['group1_diff', 'group1_D', 'group3_diff', 'group3_D', 'type']]
+# scenarios = scenarios.rename(columns={'group1_diff': '50\% $p$', 'group1_D':'50\% $D$', 'group3_diff': '96\% $p$', 'group3_D': '96\% $D$', 'type': 'scenario'})
+# scenarios = scenarios.groupby(['scenario']).agg(['mean', 'count']).reset_index().set_index('scenario')
+# print(scenarios.to_latex(
+#     # header=[*(['mean', '$n$']*4)], 
+#     escape=False, 
+#     float_format=lambda x: f'{x:10.2f}'))
 
 
-print(event_results.to_string())
+# print(event_results.to_string())
 
 
     
