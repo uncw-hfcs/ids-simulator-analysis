@@ -1,14 +1,15 @@
-from datetime import datetime, timedelta
-from collections import OrderedDict
-from openpyxl import Workbook
 import os
-from pathlib import Path
-import psycopg2
 import shlex
 import shutil
+from collections import OrderedDict
+from datetime import datetime, timedelta
+from pathlib import Path
+from subprocess import Popen
+
+import psycopg2
+from openpyxl import Workbook
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
-from subprocess import Popen
 
 # Constants that may need to be changed based on local machine configuration
 HEROKU_APP = 'cry-wolf'
@@ -19,30 +20,6 @@ PG_HOST = 'localhost'
 PG_DATABASE = 'crywolf'
 
 EXCEL_DIR = 'excel'
-
-
-def download_and_import():
-    # Download the database dump
-    Popen(shlex.split(f"heroku pg:backups:capture -a {HEROKU_APP}")).wait()
-    Popen(shlex.split(f"heroku pg:backups:download -a {HEROKU_APP}")).wait()
-
-    # copy it to snapshots folder and timestamp it
-    if not os.path.exists(SNAPSHOTS_DIR):
-        os.makedirs(SNAPSHOTS_DIR)
-    snapshot = Path(SNAPSHOTS_DIR, f'{HEROKU_APP}_{datetime.now().strftime("%Y%m%d_%H-%M-%S")}.dump')
-    shutil.copy('latest.dump', snapshot)
-    os.remove('latest.dump')
-
-    # Need to set this so Postgres can log in. Not recommended for security reasons on a server.
-    # Assumes Postgres is running on localhost
-    os.environ["PGPASSWORD"] = PG_PASSWORD
-
-    # Do the import using the pg_restore tool
-    Popen(shlex.split(f"pg_restore --verbose --clean --no-acl --no-owner -h {PG_HOST} -U {PG_USERNAME} -d {PG_DATABASE} {snapshot}")).wait()
-
-    print(f"Run the following from .venv terminal: sqlacodegen postgresql:///{PG_DATABASE} --outfile models.py")
-
-
 # Convert a Sqlaclhemy model with data to a dictionary.
 def _to_dict(model):
     if model is None:
@@ -288,15 +265,6 @@ def write_excel(results, user_event_deltas, session):
         for field in range(len(headers)):
             ws.cell(row=row, column=field+1, value=results[row-2].get(headers[field], None))
 
-    _create_sheet_for_table(wb, 'User', User)
-    _create_sheet_for_table(wb, 'PrequestionnaireAnswer', PrequestionnaireAnswer)
-    _create_sheet_for_table(wb, 'TrainingEvent', TrainingEvent)
-    _create_sheet_for_table(wb, 'TrainingEventDecision', TrainingEventDecision)
-    _create_sheet_for_table(wb, 'Event', Event)
-    _create_sheet_for_table(wb, 'EventClicked', EventClicked)
-    _create_sheet_for_table(wb, 'EventDecision', EventDecision)
-    _create_sheet_for_table(wb, 'SurveyAnswer', SurveyAnswer)
-
     ws = wb.create_sheet('time_on_event')
     
     row = 1
@@ -310,31 +278,14 @@ def write_excel(results, user_event_deltas, session):
 
     wb.save(excel_file)
 
-def _create_sheet_for_table(wb, sheet_name, model):
-    ws = wb.create_sheet(sheet_name)
-    results = [_to_dict(d) for d in session.query(model)]
-    headers = list(results[0].keys())
-
-    for col in range(len(headers)):
-        ws.cell(row=1, column=col+1, value=headers[col])
-    for row in range(2, len(results) + 2):
-        for field in range(len(headers)):
-            ws.cell(row=row, column=field+1, value=results[row-2].get(headers[field], None))
-
-
 if __name__ == "__main__":
 
     # 0. Must have run 'heroku login' prior to running this script
 
-    # 1. download_and_import first. Must manually generate models after that.
-    # download_and_import()
 
     # 2. Manually generate models using sqlacodegen string from 1.
 
     
-    engine = create_engine(f'postgresql+psycopg2://{PG_USERNAME}:{PG_PASSWORD}@{PG_HOST}/{PG_DATABASE}')
-    Session = sessionmaker(bind=engine)
-    session = Session()
     from models import User, Event, EventClicked, EventDecision, PrequestionnaireAnswer, TrainingEvent, TrainingEventDecision, SurveyAnswer
 
     # 3. compute_results
@@ -342,5 +293,3 @@ if __name__ == "__main__":
 
     # 4. write_excel
     write_excel(results, user_event_deltas, session)
-
-    session.close()
