@@ -68,7 +68,7 @@ def compute_results(session, decided_only=False):
         latest_decisions = {}
         decision_counts = {}
 
-        # for each decision, increment a counter for that event, compute determine classification correctness, and possible add to latest decisions
+        # for each decision: increment a counter for that event, compute classification correctness, and possibly add to latest decisions
         for d in decisions:
             # Store first decision made for an event_id
             if d["event_id"] not in first_decisions:
@@ -324,18 +324,20 @@ def _create_sheet_for_table(wb, sheet_name, model):
 
 if __name__ == "__main__":
 
-    # 0. Must have run 'heroku login' from prior to running this script
+    # 0. Must have run 'heroku login' prior to running this script
 
     # 1. download_and_import first. Must manually generate models after that.
     # download_and_import()
 
     # 2. Manually generate models using sqlacodegen string from 1.
 
-    # 3. compute_results
+    
     engine = create_engine(f'postgresql+psycopg2://{PG_USERNAME}:{PG_PASSWORD}@{PG_HOST}/{PG_DATABASE}')
     Session = sessionmaker(bind=engine)
     session = Session()
     from models import User, Event, EventClicked, EventDecision, PrequestionnaireAnswer, TrainingEvent, TrainingEventDecision, SurveyAnswer
+
+    # 3. compute_results
     results, user_event_deltas = compute_results(session, decided_only=True)
 
     # 4. write_excel
