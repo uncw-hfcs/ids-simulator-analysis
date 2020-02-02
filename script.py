@@ -1,15 +1,8 @@
-import os
-import shlex
-import shutil
-from collections import OrderedDict
-from datetime import datetime, timedelta
 from pathlib import Path
-from subprocess import Popen
 
-import psycopg2
-from openpyxl import Workbook
-from sqlalchemy import create_engine, desc
-from sqlalchemy.orm import sessionmaker
+import numpy as np
+import pandas as pd
+
 
 # Constants that may need to be changed based on local machine configuration
 HEROKU_APP = 'cry-wolf'
@@ -20,263 +13,127 @@ PG_HOST = 'localhost'
 PG_DATABASE = 'crywolf'
 
 EXCEL_DIR = 'excel'
-# Convert a Sqlaclhemy model with data to a dictionary.
-def _to_dict(model):
-    if model is None:
-        return {}
-    d = model.__dict__
-    d.pop('_sa_instance_state', None)   # remove this sqlalchemy state variable
-    return d
+   
+TRUE_ALARM = 'Escalate'
+FALSE_ALARM = "Don't escalate"
+UNDECIDED = "I don't know"
+# Escalate, Don't escalate, I don't know
+def normalize_answer(event):
+    if event['should_escalate'] == 1:
+        return TRUE_ALARM
+    return FALSE_ALARM
 
-def compute_results(session, decided_only=False):
-    events = {e.id: _to_dict(e) for e in session.query(Event)}
-    users = {u.username: _to_dict(u) for u in session.query(User)}
+def calc_confusion(user, events, event_decisions): 
+    user_decisions = event_decisions[event_decisions.user == user.username]    
+    for decision in user_decisions.itertuples():
+        answer = events[events.id == decision.event_id].should_escalate.item()
+        # Exclude I don't knows
+        if decision.escalate == UNDECIDED:
+            user[decision.event_id] = np.NaN
+        elif answer == TRUE_ALARM:
+            user[decision.event_id] = 'TP' if decision.escalate == TRUE_ALARM else 'FN'
+        else:
+            user[decision.event_id] = 'FP' if decision.escalate == TRUE_ALARM else 'TN'            
+    return user    
 
-    user_event_deltas = {}
-    results = []
-
-    for username, user in users.items():
-        user_events = user['events'].split(',')
-
-        # Get all of the decisions made for events by a user
-        decisions = [_to_dict(d) for d in session.query(EventDecision).filter_by(user=username).order_by(EventDecision.time_event_decision)] 
-
-        first_decisions = OrderedDict()
-        latest_decisions = {}
-        decision_counts = {}
-
-        # for each decision: increment a counter for that event, compute classification correctness, and possibly add to latest decisions
-        for d in decisions:
-            # Store first decision made for an event_id
-            if d["event_id"] not in first_decisions:
-                first_decisions[d["event_id"]] = d
-            # Increment how many times a decision was made for a particular event
-            decision_counts[d["event_id"]] = decision_counts.get(d["event_id"], 0) + 1
-           
-            d['TP'] = False
-            d['FP'] = False
-            d['TN'] = False
-            d['FN'] = False
-            
-            # "should_escalate" = 1 for TP, 0 for TN
-            # Determine whether a decision is correct and a TP, FP, TN, or FN
-            should_escalate = True if events[d['event_id']]['should_escalate'] == '1' else False
-            if d['escalate'] == "I don't know":
-                d['correct?'] = False
-                i_dont_knows += 1
-            elif should_escalate and d['escalate'] == "Escalate":
-                d['TP'] = True
-                d['state'] = 'TP'
-                d['correct?'] = True
-            elif should_escalate and d['escalate'] == "Don't escalate":
-                d['FN'] = True
-                d['state'] = 'FN'
-                d['correct?'] = False
-            elif not should_escalate and d['escalate'] == "Don't escalate":
-                d['TN'] = True
-                d['state'] = 'TN'
-                d['correct?'] = True
-            elif not should_escalate and d['escalate'] == 'Escalate':
-                d['FP'] = True
-                d['state'] = 'FP'
-                d['correct?'] = False
-            else:
-                raise Exception("Encountered an unknown value for 'Escalate' in the event decision", d['escalate'])
-
-            # Update the "most recent decision" for each event
-            if d["event_id"] not in latest_decisions or d["time_event_decision"] > latest_decisions[d["event_id"]]["time_event_decision"]:
-                # print("new latest:",
-                #     d["user"],
-                #     d["event_id"],
-                #     'None' if d["event_id"] not in latest_decisions else latest_decisions[d["event_id"]]["time_event_decision"],
-                #     "-->",
-                #     d["time_event_decision"])
-
-                latest_decisions[d["event_id"]] = d
+def compute_results():
+    # Use the corected master workbook, which correctly labels the 4 eurotrip alerts as TRUE alarms
+    file = Path('backups') / 'cry-wolf_20200125_14-35-09_patched.xlsx'
 
 
-        # begin user-level stat computation
+    events = pd.read_excel(file, sheet_name='Event')
+    event_decisions = pd.read_excel(file, sheet_name='EventDecision')
 
-        # sum of delta between every event's first decision and its first click
-        total_first_decision_first_click_delta = timedelta(hours=0)
-        event_deltas = []
-        for k, v in first_decisions.items():            
-            event_clicked = session.query(EventClicked).filter_by(user=username, event_id=k).order_by(EventClicked.time_event_click).first()
-            delta = v["time_event_decision"] - event_clicked.time_event_click
-            event_deltas.append(delta)
-            total_first_decision_first_click_delta += delta
+    # Drop "check" events from analysis
+    events = events[(events['id'] != 74) & (events['id'] != 75)]
+    event_decisions = event_decisions[(event_decisions.event_id != 74) & (event_decisions.event_id != 75)]
 
-        
+    # Keep only most recent decision per event per user
+    event_decisions.sort_values('time_event_decision', inplace=True)
+    orig_len = len(event_decisions)
+    event_decisions.drop_duplicates(subset=['user', 'event_id'], keep='last', inplace=True)
+    print(f"Dropped {orig_len - len(event_decisions)} duplicate decisions keeping most recent.")
 
-        confusion = {
-            'TP' : 0,
-            'FP' : 0,
-            'TN' : 0,
-            'FN' : 0
-        }
-        num_correct = 0
-        num_with_confidence = 0
-        confidence_sum = 0
-        i_dont_knows = 0
-        check_score = 0
+    # Normalize 'should_escalate' column and 'event_decision' column values
+    events['should_escalate'] = events.apply(normalize_answer, axis=1)
+    true_alarms = events[events.should_escalate == TRUE_ALARM]
+    false_alarms = events[events.should_escalate == FALSE_ALARM]
+    print(f"True alarms: {len(true_alarms)}, False alarms: {len(false_alarms)}")
 
-        # Look at most recent decisions to compute correctness, confidence, and confusion matrix
-        for eventid, decision in latest_decisions.items():
-            if eventid == 74:
-                if decision['escalate'] == 'Escalate':
-                    check_score += 1
-                if decision['confidence'] == '2':
-                    check_score += 1
-                continue
-            elif eventid == 75:
-                if decision['escalate'] == "Don't escalate":
-                    check_score += 1
-                if decision['confidence'] == '4':
-                    check_score += 1
-                continue
+    # Create user dataframe to record users' correctness for each event
+    users = pd.read_excel(file, sheet_name='User')
+    users = users.dropna()
+    # Remove user 'awiv3' whose check_score == 2. It was determined to exclude him from analysis. 
+    # We keep check_score = 3 (typo) and = 0 because that user (wgff3) intionally picked wrong answers.
+    # The check events (ids 74-75) are not included in correctness/confusion matrix.
+    users = users[users.username != 'awiv3']
+    event_decisions[event_decisions.user != 'awiv3']
 
-            if 'confidence' in decision and decision['confidence'] != 'None':
-                confidence_sum += int(decision['confidence'])
-                num_with_confidence += 1
-            if decision['correct?']:
-                num_correct += 1
-            # Generate confusion matrix for event decisions made. "I don't knows" are excluded
-            if 'state' in decision:
-                confusion[decision['state']] += 1
-            if d['escalate'] == "I don't know":
-                i_dont_knows += 1
-        
-        specificity = 'N/A' if confusion['TN'] + confusion['FP'] == 0 else confusion['TN'] / (confusion['TN'] + confusion['FP'])
-        sensitivity = 'N/A' if confusion['TP'] + confusion['FN'] == 0 else confusion['TP'] / (confusion['TP'] + confusion['FN'])
-        precision = 'N/A' if confusion['TP'] + confusion['FP'] == 0 else confusion['TP'] / (confusion['TP'] + confusion['FP'])
+    # Get user time on task and determine whether the user is in the 25th percentile in time on task.
+    users['time_on_task'] = users.time_end - users.time_begin
+    quartile_1 = np.quantile(users.time_on_task, 0.25)
+    print(f"Time on task 25th percentile: {float(quartile_1) / 1000000000 / 60:.2f} minutes")
+    users['25th percentile'] = np.where(users.time_on_task <= quartile_1, True, False)
 
-        if len(latest_decisions):
-            print(f"{username} - " 
-                f"{len(latest_decisions)}/{(len(user_events) + 3)} decided, "     # the 3 are the 2 check events + 1 obvious attack everyone got
-                f"{confidence_sum / num_with_confidence if latest_decisions else 'N/A'} avg confidence, "
-                f"{num_correct * 100 / len(latest_decisions) if latest_decisions else 'N/A'}% correct, " 
-                f"{i_dont_knows} IDKs, "
-                f"{specificity} specificity, "
-                f"{sensitivity} sensitivity, "
-                f"{precision} precision, "
-                f"{confusion}, "
-                f"{check_score} check_score, "
-                f"{total_first_decision_first_click_delta / len(latest_decisions) if latest_decisions else 'N/A'} avg time delta"
-                )
-        
-        # Add computed values into user dictionary
-        user['decided'] = len(latest_decisions)
-        user['perc_decided'] = len(latest_decisions) * 100 / (len(user_events) + 3)
-        user['avg_confidence'] = confidence_sum / len(latest_decisions) if latest_decisions else 'N/A'
-        user['correct'] = num_correct
-        user['perc_correct'] = num_correct * 100 / len(latest_decisions) if latest_decisions else 'N/A'
-        user['i_dont_knows'] = i_dont_knows
-        user['sensitivity'] = sensitivity
-        user['specificity'] = specificity
-        user['precision'] = precision
-        user['TP'] = confusion['TP']
-        user['FP'] = confusion['FP']
-        user['TN'] = confusion['TN']
-        user['FN'] = confusion['FN']
-        user['check_score'] = check_score
-        user['avg_first_decision_first_click_delta'] = total_first_decision_first_click_delta / len(latest_decisions) if latest_decisions else 'N/A'
-        
-        # get prequestionnaire answers for user and rename dictionary keys with prefix 'preq_'
-        preq = {}
-        for k, v in _to_dict(session.query(PrequestionnaireAnswer).filter_by(user=username).order_by(desc(PrequestionnaireAnswer.timestamp)).first()).items():
-            preq[f'preq_{k}'] = v
+    # count number of events each user decided upon
+    # get mean confidence as well
 
-        # get survey answers for user and rename dictionary keys with prefix 'surv_'
-        survey = {}
-        for k, v in _to_dict(session.query(SurveyAnswer).filter_by(user=username).order_by(desc(SurveyAnswer.timestamp)).first()).items():
-            survey[f'surv_{k}'] = v
-        
-        # create 'master' user data with user, computations, prequestionnaire answers, and survey answers
-        if not decided_only or user['decided'] > 0:
-            results.append({**user, **preq, **survey})  
-            user_event_deltas[username] = event_deltas
-
-    return results, user_event_deltas
+    # Problem is confidence is object due to none values for I don't knows
     
-def write_excel(results, user_event_deltas, session):
-    if not os.path.exists(EXCEL_DIR):
-        os.makedirs(EXCEL_DIR)
-    excel_file = Path(EXCEL_DIR, f'{HEROKU_APP}_{datetime.now().strftime("%Y%m%d_%H-%M-%S")}.xlsx')
+    dec_count = event_decisions[['user', 'event_id', 'confidence']] \
+        .groupby(['user'])\
+        .agg({'event_id' : "count"})
+    print(dec_count.head())
+    exit(0)
+    dec_count.rename(columns={'user': 'username', 'event_id': 'decision_count'}, inplace=True)
+    users = users.merge(dec_count, how='left', on='username')
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = 'master'
+    confidence = event_decisions[['user', 'confidence']].groupby(['user'], as_index=False).mean().reset_index()
+    # dec_count.rename(columns={'user': 'username', 'event_id': 'decision_count'}, inplace=True)
+    print(confidence.head())
+    exit(0)
 
-    headers = \
-        ['id', 
-        'username', 
-        'group',
-        'time_begin', 
-        'time_end',
-        'avg_first_decision_first_click_delta',
-        'questionnaire_complete', 
-        'training_complete',
-        'survey_complete', 
-        'check_score',
-        'decided',
-        'perc_decided',
-        'avg_confidence',
-        'correct',
-        'perc_correct',
-        'i_dont_knows',
-        'TP',
-        'FP',
-        'TN',
-        'FN',
-        'preq_timestamp',
-        'preq_role',
-        'preq_exp_researcher',
-        'preq_exp_admin',
-        'preq_exp_software',
-        'preq_exp_security',
-        'preq_exp_security',
-        'preq_familiarity_none',
-        'preq_familiarity_read',
-        'preq_familiarity_controlled',
-        'preq_familiarity_public',
-        'preq_familiarity_engineered',
-        'preq_subnet_mask',
-        'preq_network_address',
-        'preq_tcp_faster',
-        'preq_http_port',
-        'preq_firewall',
-        'preq_socket',
-        'preq_which_model',
-        'surv_timestamp',
-        'surv_mental',
-        'surv_physical',
-        'surv_temporal',
-        'surv_performance',
-        'surv_effort',
-        'surv_frustration',
-        'surv_useful_info',
-        'surv_feedback'
-        ]
+    print(dec_count)
 
-    for col in range(len(headers)):
-        ws.cell(row=1, column=col+1, value=headers[col])
+    # users['perc_decided'] = len(event_decisions[event_decisions.user == users.username])
+    # print(users.head())
+    exit(0)
+    #     user['perc_decided'] = len(latest_decisions) * 100 / (len(user_events) + 3)
+    #     user['avg_confidence'] = confidence_sum / len(latest_decisions) if latest_decisions else 'N/A'
 
-    for row in range(2, len(results)+2):
-        for field in range(len(headers)):
-            ws.cell(row=row, column=field+1, value=results[row-2].get(headers[field], None))
-
-    ws = wb.create_sheet('time_on_event')
+    event_ids = sorted(list(event_decisions.event_id.unique()))
+    users = users.reindex(columns = ['username', 'group', 'time_on_task', '25th percentile'] + event_ids)
     
-    row = 1
-    for k, v in user_event_deltas.items():
-        ws.cell(row=row, column=1, value=k)
-        col = 2
-        for event_delta in v:
-            ws.cell(row=row, column=col, value=event_delta)
-            col += 1
-        row += 1
+    # Compute confusion matrix for each user, dropping "I don't know" answers
+    users = users.apply(calc_confusion, axis=1, args=(events, event_decisions))
+    users['TP'] = (users[event_ids] == 'TP').sum(axis=1)
+    users['FP'] = (users[event_ids] == 'FP').sum(axis=1)
+    users['FN'] = (users[event_ids] == 'FN').sum(axis=1)
+    users['TN'] = (users[event_ids] == 'TN').sum(axis=1)
 
-    wb.save(excel_file)
+    # Compute performance measures for each user
+    users['sensitivity'] = users['TP'] / (users['TP'] + users['FN'])
+    users['specificity'] = users['TN'] / (users['TN'] + users['FP'])
+    users['precision'] = users['TP'] / (users['TP'] + users['FP'])
+    users['correctness'] = (users['TP'] + users['TN']) / (users['TP'] + users['FP'] + users['TN'] + users['FN'])
+
+
+    # user['decided'] = len(latest_decisions)
+    #     user['perc_decided'] = len(latest_decisions) * 100 / (len(user_events) + 3)
+    #     user['avg_confidence'] = confidence_sum / len(latest_decisions) if latest_decisions else 'N/A'
+    #     user['correct'] = num_correct
+    #     user['perc_correct'] = num_correct * 100 / len(latest_decisions) if latest_decisions else 'N/A'
+    #     user['i_dont_knows'] = i_dont_knows
+    #     user['sensitivity'] = sensitivity
+    #     user['specificity'] = specificity
+    #     user['precision'] = precision
+    #     user['TP'] = confusion['TP']
+    #     user['FP'] = confusion['FP']
+    #     user['TN'] = confusion['TN']
+    #     user['FN'] = confusion['FN']
+    #     user['check_score'] = check_score
+    #     user['avg_first_decision_first_click_delta'] = total_first_decision_first_click_delta / len(latest_decisions) if latest_decisions else 'N/A'
+    print(users.head())
 
 if __name__ == "__main__":
 
@@ -285,11 +142,7 @@ if __name__ == "__main__":
 
     # 2. Manually generate models using sqlacodegen string from 1.
 
-    
-    from models import User, Event, EventClicked, EventDecision, PrequestionnaireAnswer, TrainingEvent, TrainingEventDecision, SurveyAnswer
-
-    # 3. compute_results
-    results, user_event_deltas = compute_results(session, decided_only=True)
+    compute_results()
 
     # 4. write_excel
-    write_excel(results, user_event_deltas, session)
+    # write_excel(results, user_event_deltas, session)
