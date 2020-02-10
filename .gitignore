@@ -1,6 +1,7 @@
 .vscode
 .venv
+.idea
 snapshots
-excel
+plots
 *Session.sql
 __pycache__
