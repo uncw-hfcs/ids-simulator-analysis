@@ -6,7 +6,9 @@ import pandas as pd
 import seaborn as sns
 
 sns.set_palette("pastel")
-sns.set(rc={"font.size":12,"axes.titlesize":14,"axes.labelsize":12})
+sns.set(font_scale = 1.5)
+# sns.set(rc={"font.size":12,"axes.titlesize":14,"axes.labelsize":12})
+# sns.set(rc={"font.size":24,"axes.titlesize":24,"axes.labelsize":24})
 
 PLOT_DIR = Path('plots')
 if not os.path.exists(PLOT_DIR):
@@ -27,14 +29,15 @@ def _plot(df, x, y, title=None, title_suffix='', file_suffix='', **kwargs):
 
 def plot_user_results(df):
 
-    df['group'] = df['group'].astype({'group': 'str'}).map({'1': '50% FAR', '3': '86% FAR'})
+    df['group'] = df['group'].astype({'group': 'str'}).map({'1': '50% False Alarm Rate', '3': '86% False Alarm Rate'})
     df['25th percentile'] = df['25th percentile'].astype({'25th percentile': 'str'}).map({'True': '25th%', 'False': 'Others'})
     max_time = max(df['time_on_task'])
 
     # Performance measures - whole group
     _plot(df, x="group", y="sensitivity", ylim=(-0.05, 1.05))
     _plot(df, x="group", y="specificity", ylim=(-0.05, 1.05))
-    _plot(df, x="group", y="precision", ylim=(-0.05, 1.05))
+    _plot(df, x="group", y="precision", ylim=(-0.05, 1.05), xlabel='')
+    exit(0)
     _plot(df, x="group", y="time_on_task", ylim=(-0.05, max_time+1), title='Time on Task (Minutes)')
 
     # Performance measures - 25% vs rest
