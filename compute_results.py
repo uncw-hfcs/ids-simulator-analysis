@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import os
 import pandas as pd
-
+from openpyxl import load_workbook
 
 # Constants that may need to be changed based on local machine configuration
 HEROKU_APP = 'cry-wolf'
@@ -110,7 +110,44 @@ def compute_results(filename):
 
     # TODO: Need to make check score calculation part of this scripting apparatus, but want to keep some control too
     #     user['avg_first_decision_first_click_delta'] = total_first_decision_first_click_delta / len(latest_decisions) if latest_decisions else 'N/A'
-    print(users.head().to_string())
+
+    # print(users.head().to_string())
+
+    # TODO: Compute experience groups
+
+
+    # Convert time_on_task from timedelta64 to fractional minutes
+    users['time_on_task'] = users['time_on_task'] / np.timedelta64(1, 'm')
+
+    return users
+
+def determine_user_groups(filename):
+    input_file = Path('backups') / f"{filename}.xlsx"
+
+    quest = pd.read_excel(input_file, sheet_name='PrequestionnaireAnswer')
+    SUBNET_MASK = '255.255.255.0'
+    NETWORK_ADDRESS = '173.67.14.0'
+    TCP_UDP = 'False'
+    HTTP_PORT = '80'
+    SEC_DEVICE = 'Firewall'
+    IP_AND_PORT = 'Socket'
+    MODEL = 'TCP/IP'
+
+    NO_EXPERIENCE = 'No Experience'
+    # Cyber SEcurity = score >= 5 && > 1 year Security Experience
+    # Network/IT admin = score >= 5 && > 1 year Network IT
+    # Software development = > 1 year Software Development
+    # Novice = score < 5 &  < 1yr software development
+    # Novice+ = score >=5 & (<1 || no experience)
+
+
+
+if __name__ == "__main__":
+
+    # Use the patched workbook, which correctly labels the 4 eurotrip alerts as TRUE alarms
+    filename = 'cry-wolf_20200125_14-35-09_patched'
+    users = compute_results(filename)
+
 
     excel_dir = Path('excel')
     if not os.path.exists(excel_dir):
@@ -118,12 +155,8 @@ def compute_results(filename):
 
     excel_file = excel_dir / f"{filename}_analysis.xlsx"
     with pd.ExcelWriter(excel_file, engine='openpyxl', datetime_format='hh:mm:ss') as writer:
-        # Excel doesn't have a timedelta type. Write time_on_task as fractional minutes
-        users['time_on_task'] = users['time_on_task'] / np.timedelta64(1, 'm')
+        book = load_workbook(excel_file)
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
         users.to_excel(writer, "users", index=False)
         writer.save()
-
-if __name__ == "__main__":
-
-    # Use the patched workbook, which correctly labels the 4 eurotrip alerts as TRUE alarms
-    compute_results('cry-wolf_20200125_14-35-09_patched')
