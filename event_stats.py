@@ -131,7 +131,8 @@ for group in ['1', '3']:
     event_results = event_results.apply(calc_discrimination_index, axis=1, args=(f'group{group}_D', high, low))
 
 # Using corrected version, which correctly labels the 4 eurotrip alarms as TRUE alarms
-event_types = pd.read_excel('events_corrected.xlsx', sheet_name='event_type')
+in_excel = Path('events') / 'events_corrected.xlsx'
+event_types = pd.read_excel(in_excel, sheet_name='event_type')
 headers = [
     'id',
     'true/false alarm',
@@ -174,6 +175,10 @@ easiest = [event_results['easiest_g1'].sum(), event_results['easiest_g3'].sum()]
 event_results['hardest_g1'] = (event_results.group1_diff < event_results.group1_diff.median()) & (event_results.group1_D <= 0.4)
 event_results['hardest_g3'] = (event_results.group3_diff < event_results.group3_diff.median()) & (event_results.group3_D <= 0.4)
 hardest = [event_results['hardest_g1'].sum(), event_results['hardest_g3'].sum()]
+print("vvv HARDEST vvv")
+print(event_results[event_results['hardest_g1'] == True])
+print(event_results[event_results['hardest_g3'] == True])
+print("^^^ HARDEST ^^^")
 
 # event_results['improvable_g1'] = (event_results.group1_D <= 0.4) & (event_results.group1_D >= 0.2)
 # event_results['improvable_g3'] = (event_results.group3_D <= 0.4) & (event_results.group3_D >= 0.2)
