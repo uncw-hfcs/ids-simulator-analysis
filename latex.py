@@ -15,7 +15,6 @@ df['time on task percentile'] = df['25th percentile'].astype({'25th percentile':
 print(df.groupby(['group', 'time on task percentile']).size())
 df = df[df['time on task percentile'] == 'Others']
 
-
 # confidence
 print(df[['group', 'confidence']].groupby(['group']).agg(['mean', 'median']))
 
@@ -36,6 +35,7 @@ group_stats.rename(columns={'<lambda_0>': '$\sigma$'}, inplace=True)
 group_stats = group_stats.transpose()
 
 # print(group_stats.to_latex(float_format='%.2f', escape=False))
-
+print(df.groupby(['group', 'experience_group']).size().unstack().transpose().to_latex(na_rep='0', float_format='%.0f', escape=False))
+# print(df.groupby(['group', 'experience_group']).size().transpose())
 
 

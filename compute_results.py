@@ -114,12 +114,35 @@ def compute_results(filename):
     # print(users.head().to_string())
 
     # TODO: Compute experience groups
+    exp_groups = determine_user_groups(filename)
+    users = users.merge(exp_groups, how='left', on='username')
+    print(users.head())
 
+    # TODO: Compute TLX
 
     # Convert time_on_task from timedelta64 to fractional minutes
     users['time_on_task'] = users['time_on_task'] / np.timedelta64(1, 'm')
 
     return users
+
+
+def compute_experience_group(user):
+    GT_1year = ['1 - 5', '5 - 10', '10+']
+    # Cyber SEcurity = score >= 5 && > 1 year Security Experience
+    # Network/IT admin = score >= 5 && > 1 year Network IT
+    # Software development = > 1 year Software Development
+    # Novice = score < 5 &  < 1yr software development
+    # Novice+ = score >=5 & (<1 || no experience)'
+    if user['exp_security'] in GT_1year and user['score'] >= 5:
+        return 'Cyber security'
+
+    if user['exp_admin'] in GT_1year and user['score'] >= 5:
+        return 'Network/IT admin'
+
+    if user['score'] >= 5:
+        return 'Novice+'
+
+    return 'Novice'
 
 def determine_user_groups(filename):
     input_file = Path('backups') / f"{filename}.xlsx"
@@ -133,12 +156,18 @@ def determine_user_groups(filename):
     IP_AND_PORT = 'Socket'
     MODEL = 'TCP/IP'
 
+
     NO_EXPERIENCE = 'No Experience'
-    # Cyber SEcurity = score >= 5 && > 1 year Security Experience
-    # Network/IT admin = score >= 5 && > 1 year Network IT
-    # Software development = > 1 year Software Development
-    # Novice = score < 5 &  < 1yr software development
-    # Novice+ = score >=5 & (<1 || no experience)
+    quest['score'] = (quest['subnet_mask'] == SUBNET_MASK).astype(int) + \
+                     (quest['network_address'] == NETWORK_ADDRESS) + \
+                     (quest['tcp_faster'] == TCP_UDP) + \
+                     (quest['http_port'] == HTTP_PORT) + \
+                     (quest['firewall'] == SEC_DEVICE) + \
+                     (quest['socket'] == IP_AND_PORT) + \
+                     (quest['which_model'] == MODEL)
+    quest['experience_group'] = quest.apply(compute_experience_group, axis=1)
+    quest.rename(columns={'user': 'username'}, inplace=True)
+    return quest[['username', 'experience_group']]
 
 
 
@@ -147,7 +176,6 @@ if __name__ == "__main__":
     # Use the patched workbook, which correctly labels the 4 eurotrip alerts as TRUE alarms
     filename = 'cry-wolf_20200125_14-35-09_patched'
     users = compute_results(filename)
-
 
     excel_dir = Path('excel')
     if not os.path.exists(excel_dir):
