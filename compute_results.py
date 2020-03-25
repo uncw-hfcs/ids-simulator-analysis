@@ -116,7 +116,7 @@ def compute_results(filename):
     # TODO: Compute experience groups
     exp_groups = determine_user_groups(filename)
     users = users.merge(exp_groups, how='left', on='username')
-    print(users.head())
+    # print(users.head())
 
     # TODO: Compute TLX
 
@@ -133,11 +133,8 @@ def compute_experience_group(user):
     # Software development = > 1 year Software Development
     # Novice = score < 5 &  < 1yr software development
     # Novice+ = score >=5 & (<1 || no experience)'
-    if user['exp_security'] in GT_1year and user['score'] >= 5:
-        return 'Cyber security'
-
-    if user['exp_admin'] in GT_1year and user['score'] >= 5:
-        return 'Network/IT admin'
+    if (user['exp_security'] in GT_1year or user['exp_admin'] in GT_1year) and user['score'] >= 5:
+        return 'Practical'
 
     if user['score'] >= 5:
         return 'Novice+'
@@ -170,12 +167,38 @@ def determine_user_groups(filename):
     return quest[['username', 'experience_group']]
 
 
+# def get_order_of_first_event_clicks(clicks):
+
+
+def event_decision_time(filename, users):
+    file = Path('backups') / f"{filename}.xlsx"
+
+    # Filter on first clicks on each event for each user
+    event_clicked = pd.read_excel(file, sheet_name="EventClicked")
+    event_clicked.rename(columns={'user': 'username'}, inplace=True)
+    event_clicked = event_clicked.sort_values('time_event_click').drop_duplicates(subset=['event_id', 'username'])
+
+    # Filter on first decisions on each event for each user
+    event_decision = pd.read_excel(file, sheet_name="EventDecision")
+    event_decision.rename(columns={'user': 'username'}, inplace=True)
+    event_decision = event_decision.sort_values('time_event_decision').drop_duplicates(subset=['event_id', 'username'])
+
+    event_decision = event_decision.merge(event_clicked, how='left', on=['username', 'event_id'])
+    event_decision['time_to_first_decide'] =event_decision['time_event_decision'] - event_decision['time_event_click']
+
+    print(event_decision[['username', 'event_id', 'time_to_first_decide']].head().to_string())
+
+    # TODO: Now need to get the time to decide for each user+event_id and transpose it into columns
+
 
 if __name__ == "__main__":
 
     # Use the patched workbook, which correctly labels the 4 eurotrip alerts as TRUE alarms
     filename = 'cry-wolf_20200125_14-35-09_patched'
     users = compute_results(filename)
+    event_decision_time(filename, users[['username', 'group', '25th percentile']])
+
+    exit(0)
 
     excel_dir = Path('excel')
     if not os.path.exists(excel_dir):

@@ -29,13 +29,18 @@ outcomes = ['time on task', 'sensitivity', 'specificity', 'precision', 'correctn
 # stats.columns = ['mean', 'median', '$\sigma$', 'min', 'max']
 # print(stats.to_latex(float_format='%.2f', escape=False))
 
-group_stats = df[outcomes + ['group']].groupby('group').agg(
-    ['mean', 'median', lambda x: x.std(ddof=0), 'min', 'max'])
+group_stats = df[outcomes + ['group']].groupby('group').agg(['mean', 'median', lambda x: x.std(ddof=0), 'min', 'max'])
 group_stats.rename(columns={'<lambda_0>': '$\sigma$'}, inplace=True)
 group_stats = group_stats.transpose()
-
 # print(group_stats.to_latex(float_format='%.2f', escape=False))
+
+# Experience GRoups
+# counts
 print(df.groupby(['group', 'experience_group']).size().unstack().transpose().to_latex(na_rep='0', float_format='%.0f', escape=False))
-# print(df.groupby(['group', 'experience_group']).size().transpose())
+#stats
+exp_group_stats = df[outcomes + ['experience_group']].groupby('experience_group').agg(['mean', 'median', lambda x: x.std(ddof=0), 'min', 'max'])
+exp_group_stats.rename(columns={'<lambda_0>': '$\sigma$'}, inplace=True)
+exp_group_stats = exp_group_stats.transpose()
+print(exp_group_stats.to_latex(na_rep='0', float_format='%.1f', escape=False))
 
 

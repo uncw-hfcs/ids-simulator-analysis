@@ -1,6 +1,5 @@
 from pathlib import Path
 import openpyxl
-import datetime
 
 class EventDecision:
     def __init__(self, row):
@@ -27,7 +26,7 @@ class EventDecision:
         return self.time < value.time
 
 
-file = Path('backups') / 'cry-wolf_20191021_13-51-49_MIS310.xlsx'
+file = Path('backups') / 'cry-wolf_20200125_14-35-09_patched.xlsx'
 wb = openpyxl.load_workbook(file)
 event_sheet = wb['EventDecision']
 
