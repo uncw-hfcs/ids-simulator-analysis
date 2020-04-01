@@ -58,7 +58,21 @@ def plot_user_results(df):
     print(df.head().to_string())
 
 
+def plot_decision_time(df):
+    df['mean'] = pd.to_timedelta(df['mean'], unit='day').dt.total_seconds()
+    ax = sns.regplot(data=df.reset_index(), x='index', y='mean', lowess=True, line_kws={'color': 'red'})
+    ax.set_title("Mean time to make a decision")
+    ax.set_xlabel("order of events")
+    ax.set_ylabel("mean time to decide (s)")
+    plt.tight_layout()
+    plt.savefig(PLOT_DIR / "event_decision_time.png")
+    plt.show()
+
 if __name__ == "__main__":
-    input_file = Path('excel') / "cry-wolf_20200125_14-35-09_patched_analysis.xlsx"
-    users = pd.read_excel(input_file, sheet_name='users')
-    plot_user_results(users)
+    # input_file = Path('excel') / "cry-wolf_20200125_14-35-09_patched_analysis.xlsx"
+    # users = pd.read_excel(input_file, sheet_name='users')
+    # plot_user_results(users)
+
+    input_file = Path('excel') / "cry-wolf_20200125_14-35-09_patched_decision_time.xlsx"
+    decision_times = pd.read_excel(input_file, sheet_name='event_decision_time')
+    plot_decision_time(decision_times)
