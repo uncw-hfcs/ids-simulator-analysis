@@ -14,10 +14,12 @@ PG_HOST = 'localhost'
 PG_DATABASE = 'crywolf'
 
 EXCEL_DIR = 'excel'
-   
+
 TRUE_ALARM = 'Escalate'
 FALSE_ALARM = "Don't escalate"
 UNDECIDED = "I don't know"
+
+
 # Escalate, Don't escalate, I don't know
 def normalize_answer(event):
     if event['should_escalate'] == 1:
@@ -25,8 +27,8 @@ def normalize_answer(event):
     return FALSE_ALARM
 
 
-def calc_confusion(user, events, event_decisions): 
-    user_decisions = event_decisions[event_decisions.user == user.username]    
+def calc_confusion(user, events, event_decisions):
+    user_decisions = event_decisions[event_decisions.user == user.username]
     for decision in user_decisions.itertuples():
         answer = events[events.id == decision.event_id].should_escalate.item()
         # Exclude I don't knows
@@ -35,8 +37,8 @@ def calc_confusion(user, events, event_decisions):
         elif answer == TRUE_ALARM:
             user[decision.event_id] = 'TP' if decision.escalate == TRUE_ALARM else 'FN'
         else:
-            user[decision.event_id] = 'FP' if decision.escalate == TRUE_ALARM else 'TN'            
-    return user    
+            user[decision.event_id] = 'FP' if decision.escalate == TRUE_ALARM else 'TN'
+    return user
 
 
 def compute_results(filename):
@@ -84,16 +86,17 @@ def compute_results(filename):
     event_decisions['confidence'] = pd.to_numeric(event_decisions['confidence'], errors='coerce', downcast='unsigned')
 
     dec_count = event_decisions[['user', 'event_id', 'confidence']] \
-        .groupby(['user'], as_index=False)\
-        .agg({'event_id' : "count",
-              'confidence' : "mean"})
+        .groupby(['user'], as_index=False) \
+        .agg({'event_id': "count",
+              'confidence': "mean"})
 
     dec_count.rename(columns={'user': 'username', 'event_id': 'decision_count'}, inplace=True)
     users = users.merge(dec_count, how='left', on='username')
 
     event_ids = sorted(list(event_decisions.event_id.unique()))
-    users = users.reindex(columns = ['username', 'group', 'time_on_task', '25th percentile', 'decision_count', 'confidence'] + event_ids)
-    
+    users = users.reindex(
+        columns=['username', 'group', 'time_on_task', '25th percentile', 'decision_count', 'confidence'] + event_ids)
+
     # Compute confusion matrix for each user, dropping "I don't know" answers
     users = users.apply(calc_confusion, axis=1, args=(events, event_decisions))
     users['TP'] = (users[event_ids] == 'TP').sum(axis=1)
@@ -141,6 +144,7 @@ def compute_experience_group(user):
 
     return 'Novice'
 
+
 def determine_user_groups(filename):
     input_file = Path('backups') / f"{filename}.xlsx"
 
@@ -152,7 +156,6 @@ def determine_user_groups(filename):
     SEC_DEVICE = 'Firewall'
     IP_AND_PORT = 'Socket'
     MODEL = 'TCP/IP'
-
 
     NO_EXPERIENCE = 'No Experience'
     quest['score'] = (quest['subnet_mask'] == SUBNET_MASK).astype(int) + \
@@ -184,25 +187,43 @@ def event_decision_time(filename, users):
     event_decision = event_decision.sort_values('time_event_decision').drop_duplicates(subset=['event_id', 'username'])
 
     event_decision = event_decision.merge(event_clicked, how='left', on=['username', 'event_id'])
-    event_decision['time_to_first_decide'] =event_decision['time_event_decision'] - event_decision['time_event_click']
+    event_decision['time_to_first_decide'] = event_decision['time_event_decision'] - event_decision['time_event_click']
 
     print(event_decision[['username', 'event_id', 'time_to_first_decide']].head().to_string())
 
-    # TODO: Now need to get the time to decide for each user+event_id and transpose it into columns
+    grouped = event_decision.groupby(['username'])
+    time_to_first_decision = pd.DataFrame(columns=list(range(52)))
+
+    # create a dataframe where the row indices are users and the columns are time to decide
+    # an event for the order the events were decided in
+    for name, group in grouped:
+        values = group['time_to_first_decide'].rename(name).reset_index(drop=True)
+        time_to_first_decision = time_to_first_decision.append(values)
+
+    # filter out the 25th percentile
+    filter = list(users[users['25th percentile'] == True]['username'])
+    time_to_first_decision = time_to_first_decision.drop(filter)
+
+    time_to_first_decision = time_to_first_decision.transpose()
+    time_to_first_decision['mean'] = time_to_first_decision.mean(axis=1)
+    return time_to_first_decision
 
 
 if __name__ == "__main__":
 
-    # Use the patched workbook, which correctly labels the 4 eurotrip alerts as TRUE alarms
-    filename = 'cry-wolf_20200125_14-35-09_patched'
-    users = compute_results(filename)
-    event_decision_time(filename, users[['username', 'group', '25th percentile']])
-
-    exit(0)
-
     excel_dir = Path('excel')
     if not os.path.exists(excel_dir):
         os.makedirs(excel_dir)
+
+    # Use the patched workbook, which correctly labels the 4 eurotrip alerts as TRUE alarms
+    filename = 'cry-wolf_20200125_14-35-09_patched'
+    users = compute_results(filename)
+    decision_time = event_decision_time(filename, users[['username', 'group', '25th percentile']])
+
+    excel_file = excel_dir / f"{filename}_decision_time.xlsx"
+    with pd.ExcelWriter(excel_file, engine='openpyxl', datetime_format='hh:mm:ss') as writer:
+        decision_time.to_excel(writer, sheet_name="event_decision_time", index=False)
+        writer.save()
 
     excel_file = excel_dir / f"{filename}_analysis.xlsx"
     with pd.ExcelWriter(excel_file, engine='openpyxl', datetime_format='hh:mm:ss') as writer:

@@ -69,9 +69,9 @@ def plot_decision_time(df):
     plt.show()
 
 if __name__ == "__main__":
-    # input_file = Path('excel') / "cry-wolf_20200125_14-35-09_patched_analysis.xlsx"
-    # users = pd.read_excel(input_file, sheet_name='users')
-    # plot_user_results(users)
+    input_file = Path('excel') / "cry-wolf_20200125_14-35-09_patched_analysis.xlsx"
+    users = pd.read_excel(input_file, sheet_name='users')
+    plot_user_results(users)
 
     input_file = Path('excel') / "cry-wolf_20200125_14-35-09_patched_decision_time.xlsx"
     decision_times = pd.read_excel(input_file, sheet_name='event_decision_time')
