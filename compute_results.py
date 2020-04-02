@@ -116,7 +116,7 @@ def compute_results(filename):
 
     # print(users.head().to_string())
 
-    # TODO: Compute experience groups
+    # Compute experience groups
     exp_groups = determine_user_groups(filename)
     users = users.merge(exp_groups, how='left', on='username')
     # print(users.head())
@@ -209,6 +209,18 @@ def event_decision_time(filename, users):
     return time_to_first_decision
 
 
+def tlx(filename, users):
+    file = Path('backups') / f"{filename}.xlsx"
+    df = pd.read_excel(file, sheet_name="SurveyAnswer")
+    df.rename(columns={'user': 'username'}, inplace=True)
+    df = df[['username', 'mental', 'physical', 'temporal', 'performance', 'effort', 'frustration']]
+    df = df.merge(users, how='left', on='username')
+    df = df[df['25th percentile'] == False]
+    # print(df.to_string())
+    print(df.groupby(['group']).agg(['mean', 'median']).to_string())
+
+
+
 if __name__ == "__main__":
 
     excel_dir = Path('excel')
@@ -219,6 +231,8 @@ if __name__ == "__main__":
     filename = 'cry-wolf_20200125_14-35-09_patched'
     users = compute_results(filename)
     decision_time = event_decision_time(filename, users[['username', 'group', '25th percentile']])
+    tlx(filename, users[['username', 'group', '25th percentile']])
+    exit(0)
 
     excel_file = excel_dir / f"{filename}_decision_time.xlsx"
     with pd.ExcelWriter(excel_file, engine='openpyxl', datetime_format='hh:mm:ss') as writer:
