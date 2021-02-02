@@ -1,74 +1,74 @@
-﻿id,True/False alarm,country_of_authentication1,number_successful_logins1,number_failed_logins1,source_provider1,country_of_authentication2,number_successful_logins2,number_failed_logins2,source_provider2,time_between_authentications,vpn_confidence,scenario
-1,FALSE,Tokyo,9,2,Telecom,Los Angeles,8,0,Hosting/server,0.09,98.00%,vpn
-2,FALSE,Moscow,12,2,Telecom,Los Angeles,13,0,Hosting/server,1.22,95.00%,vpn
-3,FALSE,Beijing,11,0,Telecom,Los Angeles,3,0,Hosting/server,0.75,95.00%,vpn
-4,FALSE,Moscow,7,1,Telecom,Vancouver,7,1,Hosting/server,1.33,100.00%,vpn
-5,FALSE,Moscow,9,2,Telecom,Tokyo,7,3,Hosting/server,0.6,90.00%,vpn
-6,FALSE,Beijing,9,0,Telecom,Tokyo,6,3,Hosting/server,0.79,90.00%,vpn
-7,FALSE,Beijing,13,3,Telecom,Vancouver,9,0,Hosting/server,0.08,100.00%,vpn
-8,FALSE,London,4,0,Telecom,Paris,13,1,Telecom,2.45,0.00%,eurotrip
-9,FALSE,London,5,1,Telecom,Berlin,11,1,Telecom,1.41,0.00%,eurotrip
-10,FALSE,Berlin,13,0,Telecom,Paris,11,1,Telecom,1.71,0.00%,eurotrip
-11,FALSE,Paris,7,0,Telecom,Berlin,9,0,Telecom,1.3,0.00%,eurotrip
-12,FALSE,Paris,7,1,Telecom,London,13,1,Telecom,2.47,0.00%,eurotrip
-13,FALSE,Berlin,4,1,Telecom,London,4,3,Telecom,1.5,0.00%,eurotrip
-14,FALSE,New York,12,0,Mobile/Cellular,London,11,3,Telecom,1.28,0.00%,mobile
-15,FALSE,New York,8,0,Mobile/Cellular,Paris,13,3,Telecom,0.37,0.00%,mobile
-16,FALSE,New York,9,2,Mobile/Cellular,Berlin,3,0,Telecom,0.89,0.00%,mobile
-17,FALSE,New York,13,0,Mobile/Cellular,Tokyo,13,3,Telecom,1.11,0.00%,mobile
-18,FALSE,Miami,3,2,Mobile/Cellular,London,12,0,Telecom,0.9,0.00%,mobile
-19,FALSE,Miami,10,3,Mobile/Cellular,Paris,13,3,Telecom,0.61,0.00%,mobile
-20,FALSE,Miami,5,1,Mobile/Cellular,Berlin,13,1,Telecom,0.16,0.00%,mobile
-21,FALSE,Miami,12,2,Mobile/Cellular,Tokyo,5,0,Telecom,0.09,0.00%,mobile
-22,FALSE,New York,3,1,Mobile/Cellular,Seattle,3,1,Mobile/Cellular,5.78,0.00%,edge case travel
-23,FALSE,New York,5,0,Telecom,Los Angeles,12,1,Mobile/Cellular,5.36,0.00%,edge case travel
-24,FALSE,New York,4,3,Mobile/Cellular,Miami,11,2,Telecom,2.85,0.00%,edge case travel
-25,FALSE,New York,6,2,Mobile/Cellular,Vancouver,12,3,Telecom,5.53,0.00%,edge case travel
-26,FALSE,New York,8,2,Mobile/Cellular,Toronto,6,0,Telecom,1.29,0.00%,edge case travel
-27,FALSE,Seattle,8,1,Mobile/Cellular,Los Angeles,8,0,Telecom,2.48,0.00%,edge case travel
-28,FALSE,Seattle,8,3,Mobile/Cellular,Miami,13,0,Telecom,5.65,0.00%,edge case travel
-29,FALSE,Seattle,6,1,Telecom,Vancouver,4,3,Telecom,2.8,0.00%,edge case travel
-30,FALSE,Seattle,12,2,Telecom,Toronto,5,2,Mobile/Cellular,4.32,0.00%,edge case travel
-31,FALSE,Los Angeles,5,2,Mobile/Cellular,Miami,10,1,Mobile/Cellular,5,0.00%,edge case travel
-32,FALSE,Los Angeles,12,0,Mobile/Cellular,Vancouver,3,3,Telecom,2.53,0.00%,edge case travel
-33,FALSE,Los Angeles,11,0,Telecom,Toronto,12,0,Telecom,4.48,0.00%,edge case travel
-34,FALSE,Miami,5,3,Telecom,Vancouver,6,2,Mobile/Cellular,8.15,0.00%,edge case travel
-35,FALSE,Miami,11,3,Telecom,Toronto,6,2,Telecom,2.97,0.00%,edge case travel
-36,FALSE,Vancouver,10,0,Telecom,Toronto,10,1,Mobile/Cellular,4.3,0.00%,edge case travel
-37,FALSE,Seattle,13,0,Telecom,London,13,1,Hosting/server,0.41,53.00%,hosting/servers
-38,FALSE,New York,10,0,Telecom,Paris,10,3,Hosting/server,0.16,66.00%,hosting/servers
-39,FALSE,Miami,7,2,Telecom,Berlin,9,2,Hosting/server,1.22,51.00%,hosting/servers
-40,FALSE,Toronto,11,1,Telecom,Tokyo,3,3,Hosting/server,0.58,63.00%,hosting/servers
-41,FALSE,Los Angeles,10,2,Telecom,London,10,2,Hosting/server,0.56,57.00%,hosting/servers
-42,FALSE,Paris,11,3,Hosting/server,Vancouver,10,2,Telecom,0.1,69.00%,hosting/servers
-43,FALSE,Berlin,7,0,Hosting/server,New York,12,1,Telecom,1.18,71.00%,hosting/servers
-44,FALSE,Tokyo,4,0,Hosting/server,Los Angeles,8,3,Telecom,0.9,71.00%,hosting/servers
-45,FALSE,Paris,9,2,Hosting/server,Tokyo,7,3,Telecom,1.28,55.00%,hosting/servers
-46,FALSE,Berlin,11,0,Hosting/server,Tokyo,11,1,Telecom,1,55.00%,hosting/servers
-47,FALSE,London,6,1,Hosting/server,Tokyo,6,3,Telecom,0.95,69.00%,hosting/servers
-48,FALSE,Tokyo,6,1,Hosting/server,London,6,3,Telecom,0.95,69.00%,hosting/servers
-49,TRUE,Moscow,0,100+,Telecom,Beijing,0,100+,Telecom,0.15,0.00%,password guessing
-50,TRUE,New York,7,3,Telecom,Moscow,7,3,Telecom,1.68,0.00%,impossible
-51,TRUE,New York,8,2,Telecom,Beijing,7,3,Hosting/server,1.84,28.00%,impossible
-52,TRUE,Seattle,4,1,Telecom,Moscow,11,3,Telecom,1.75,0.00%,impossible
-53,TRUE,Seattle,13,0,Telecom,Beijing,4,2,Telecom,0.77,0.00%,impossible
-54,TRUE,Miami,10,3,Telecom,Beijing,12,0,Telecom,0.65,0.00%,impossible
-55,TRUE,Toronto,9,0,Telecom,Moscow,12,0,Telecom,0.68,0.00%,impossible
-56,TRUE,London,5,3,Telecom,Moscow,10,0,Telecom,2.1,0.00%,impossible
-57,TRUE,London,9,0,Telecom,Beijing,9,1,Hosting/server,1.76,26.00%,impossible
-58,TRUE,Paris,8,3,Telecom,Moscow,3,3,Telecom,0.05,0.00%,impossible
-59,TRUE,Paris,10,1,Telecom,Beijing,5,2,Telecom,2.43,0.00%,impossible
-60,TRUE,Moscow,10,3,Telecom,Paris,10,3,Hosting/server,0.34,0.00%,impossible
-61,TRUE,Berlin,12,3,Telecom,Beijing,10,0,Telecom,1.75,0.00%,impossible
-62,TRUE,Beijing,12,3,Telecom,Berlin,10,0,Telecom,1.75,0.00%,impossible
-63,TRUE,Los Angeles,11,0,Telecom,Moscow,8,2,Telecom,1.44,0.00%,impossible
-64,TRUE,Vancouver,6,3,Telecom,Moscow,3,3,Telecom,0.63,0.00%,impossible
-65,TRUE,Vancouver,8,1,Telecom,Beijing,3,1,Telecom,2.15,0.00%,impossible
-66,TRUE,London,0,49,Telecom,Paris,3,1,Hosting/server,0.32,38.00%,password guessing
-67,TRUE,London,1,100+,Telecom,Berlin,10,1,Telecom,1.65,0.00%,password guessing
-68,TRUE,London,6,1,Telecom,Tokyo,1,28,Telecom,0.46,0.00%,password guessing
-69,TRUE,Paris,3,0,Telecom,Berlin,0,100+,Hosting/server,1.16,34.00%,password guessing
-70,TRUE,Paris,8,0,Telecom,Tokyo,8,1,Telecom,1.77,0.00%,impossible
-71,TRUE,Berlin,5,0,Telecom,Tokyo,12,3,Telecom,1.91,0.00%,impossible
-72,TRUE,New York,4,2,Telecom,Vancouver,10,3,Hosting/server,0.64,36.00%,impossible
-73,TRUE,Los Angeles,6,2,Telecom,Toronto,2,100+,Telecom,0.81,0.00%,password guessing
+﻿id,True/False alarm,country_of_authentication1,number_successful_logins1,number_failed_logins1,source_provider1,country_of_authentication2,number_successful_logins2,number_failed_logins2,source_provider2,time_between_authentications,vpn_confidence,scenario,confidence
+1,FALSE,Tokyo,9,2,Telecom,Los Angeles,8,0,Hosting/server,0.09,98.00%,vpn,unknown
+2,FALSE,Moscow,12,2,Telecom,Los Angeles,13,0,Hosting/server,1.22,95.00%,vpn,unknown
+3,FALSE,Beijing,11,0,Telecom,Los Angeles,3,0,Hosting/server,0.75,95.00%,vpn,unknown
+4,FALSE,Moscow,7,1,Telecom,Vancouver,7,1,Hosting/server,1.33,100.00%,vpn,unknown
+5,FALSE,Moscow,9,2,Telecom,Tokyo,7,3,Hosting/server,0.60,90.00%,vpn,unknown
+6,FALSE,Beijing,9,0,Telecom,Tokyo,6,3,Hosting/server,0.79,90.00%,vpn,unknown
+7,FALSE,Beijing,13,3,Telecom,Vancouver,9,0,Hosting/server,0.08,100.00%,vpn,unknown
+8,FALSE,London,4,0,Telecom,Paris,13,1,Telecom,2.45,0.00%,eurotrip,unknown
+9,FALSE,London,5,1,Telecom,Berlin,11,1,Telecom,1.41,0.00%,eurotrip,unknown
+10,FALSE,Berlin,13,0,Telecom,Paris,11,1,Telecom,1.71,0.00%,eurotrip,unknown
+11,FALSE,Paris,7,0,Telecom,Berlin,9,0,Telecom,1.30,0.00%,eurotrip,unknown
+12,FALSE,Paris,7,1,Telecom,London,13,1,Telecom,2.47,0.00%,eurotrip,unknown
+13,FALSE,Berlin,4,1,Telecom,London,4,3,Telecom,1.50,0.00%,eurotrip,unknown
+14,FALSE,New York,12,0,Mobile/Cellular,London,11,3,Telecom,1.28,0.00%,mobile,unknown
+15,FALSE,New York,8,0,Mobile/Cellular,Paris,13,3,Telecom,0.37,0.00%,mobile,unknown
+16,FALSE,New York,9,2,Mobile/Cellular,Berlin,3,0,Telecom,0.89,0.00%,mobile,unknown
+17,FALSE,New York,13,0,Mobile/Cellular,Tokyo,13,3,Telecom,1.11,0.00%,mobile,unknown
+18,FALSE,Miami,3,2,Mobile/Cellular,London,12,0,Telecom,0.90,0.00%,mobile,unknown
+19,FALSE,Miami,10,3,Mobile/Cellular,Paris,13,3,Telecom,0.61,0.00%,mobile,unknown
+20,FALSE,Miami,5,1,Mobile/Cellular,Berlin,13,1,Telecom,0.16,0.00%,mobile,unknown
+21,FALSE,Miami,12,2,Mobile/Cellular,Tokyo,5,0,Telecom,0.09,0.00%,mobile,unknown
+22,FALSE,New York,3,1,Mobile/Cellular,Seattle,3,1,Mobile/Cellular,5.78,0.00%,edge case travel,unknown
+23,FALSE,New York,5,0,Telecom,Los Angeles,12,1,Mobile/Cellular,5.36,0.00%,edge case travel,unknown
+24,FALSE,New York,4,3,Mobile/Cellular,Miami,11,2,Telecom,2.85,0.00%,edge case travel,unknown
+25,FALSE,New York,6,2,Mobile/Cellular,Vancouver,12,3,Telecom,5.53,0.00%,edge case travel,unknown
+26,FALSE,New York,8,2,Mobile/Cellular,Toronto,6,0,Telecom,1.29,0.00%,edge case travel,unknown
+27,FALSE,Seattle,8,1,Mobile/Cellular,Los Angeles,8,0,Telecom,2.48,0.00%,edge case travel,unknown
+28,FALSE,Seattle,8,3,Mobile/Cellular,Miami,13,0,Telecom,5.65,0.00%,edge case travel,unknown
+29,FALSE,Seattle,6,1,Telecom,Vancouver,4,3,Telecom,2.80,0.00%,edge case travel,unknown
+30,FALSE,Seattle,12,2,Telecom,Toronto,5,2,Mobile/Cellular,4.32,0.00%,edge case travel,unknown
+31,FALSE,Los Angeles,5,2,Mobile/Cellular,Miami,10,1,Mobile/Cellular,5.00,0.00%,edge case travel,unknown
+32,FALSE,Los Angeles,12,0,Mobile/Cellular,Vancouver,3,3,Telecom,2.53,0.00%,edge case travel,unknown
+33,FALSE,Los Angeles,11,0,Telecom,Toronto,12,0,Telecom,4.48,0.00%,edge case travel,unknown
+34,FALSE,Miami,5,3,Telecom,Vancouver,6,2,Mobile/Cellular,8.15,0.00%,edge case travel,unknown
+35,FALSE,Miami,11,3,Telecom,Toronto,6,2,Telecom,2.97,0.00%,edge case travel,unknown
+36,FALSE,Vancouver,10,0,Telecom,Toronto,10,1,Mobile/Cellular,4.30,0.00%,edge case travel,unknown
+37,FALSE,Seattle,13,0,Telecom,London,13,1,Hosting/server,0.41,53.00%,hosting/servers,unknown
+38,FALSE,New York,10,0,Telecom,Paris,10,3,Hosting/server,0.16,66.00%,hosting/servers,unknown
+39,FALSE,Miami,7,2,Telecom,Berlin,9,2,Hosting/server,1.22,51.00%,hosting/servers,unknown
+40,FALSE,Toronto,11,1,Telecom,Tokyo,3,3,Hosting/server,0.58,63.00%,hosting/servers,unknown
+41,FALSE,Los Angeles,10,2,Telecom,London,10,2,Hosting/server,0.56,57.00%,hosting/servers,unknown
+42,FALSE,Paris,11,3,Hosting/server,Vancouver,10,2,Telecom,0.10,69.00%,hosting/servers,unknown
+43,FALSE,Berlin,7,0,Hosting/server,New York,12,1,Telecom,1.18,71.00%,hosting/servers,unknown
+44,FALSE,Tokyo,4,0,Hosting/server,Los Angeles,8,3,Telecom,0.90,71.00%,hosting/servers,unknown
+45,FALSE,Paris,9,2,Hosting/server,Tokyo,7,3,Telecom,1.28,55.00%,hosting/servers,unknown
+46,FALSE,Berlin,11,0,Hosting/server,Tokyo,11,1,Telecom,1.00,55.00%,hosting/servers,unknown
+47,FALSE,London,6,1,Hosting/server,Tokyo,6,3,Telecom,0.95,69.00%,hosting/servers,unknown
+48,FALSE,Tokyo,6,1,Hosting/server,London,6,3,Telecom,0.95,69.00%,hosting/servers,unknown
+49,TRUE,Moscow,0,100+,Telecom,Beijing,0,100+,Telecom,0.15,0.00%,password guessing,unknown
+50,TRUE,New York,7,3,Telecom,Moscow,7,3,Telecom,1.68,0.00%,impossible,unknown
+51,TRUE,New York,8,2,Telecom,Beijing,7,3,Hosting/server,1.84,28.00%,impossible,unknown
+52,TRUE,Seattle,4,1,Telecom,Moscow,11,3,Telecom,1.75,0.00%,impossible,unknown
+53,TRUE,Seattle,13,0,Telecom,Beijing,4,2,Telecom,0.77,0.00%,impossible,unknown
+54,TRUE,Miami,10,3,Telecom,Beijing,12,0,Telecom,0.65,0.00%,impossible,unknown
+55,TRUE,Toronto,9,0,Telecom,Moscow,12,0,Telecom,0.68,0.00%,impossible,unknown
+56,TRUE,London,5,3,Telecom,Moscow,10,0,Telecom,2.10,0.00%,impossible,unknown
+57,TRUE,London,9,0,Telecom,Beijing,9,1,Hosting/server,1.76,26.00%,impossible,unknown
+58,TRUE,Paris,8,3,Telecom,Moscow,3,3,Telecom,0.05,0.00%,impossible,unknown
+59,TRUE,Paris,10,1,Telecom,Beijing,5,2,Telecom,2.43,0.00%,impossible,unknown
+60,TRUE,Moscow,10,3,Telecom,Paris,10,3,Hosting/server,0.34,0.00%,impossible,unknown
+61,TRUE,Berlin,12,3,Telecom,Beijing,10,0,Telecom,1.75,0.00%,impossible,unknown
+62,TRUE,Beijing,12,3,Telecom,Berlin,10,0,Telecom,1.75,0.00%,impossible,unknown
+63,TRUE,Los Angeles,11,0,Telecom,Moscow,8,2,Telecom,1.44,0.00%,impossible,unknown
+64,TRUE,Vancouver,6,3,Telecom,Moscow,3,3,Telecom,0.63,0.00%,impossible,unknown
+65,TRUE,Vancouver,8,1,Telecom,Beijing,3,1,Telecom,2.15,0.00%,impossible,unknown
+66,TRUE,London,0,49,Telecom,Paris,3,1,Hosting/server,0.32,38.00%,password guessing,unknown
+67,TRUE,London,1,100+,Telecom,Berlin,10,1,Telecom,1.65,0.00%,password guessing,unknown
+68,TRUE,London,6,1,Telecom,Tokyo,1,28,Telecom,0.46,0.00%,password guessing,unknown
+69,TRUE,Paris,3,0,Telecom,Berlin,0,100+,Hosting/server,1.16,34.00%,password guessing,unknown
+70,TRUE,Paris,8,0,Telecom,Tokyo,8,1,Telecom,1.77,0.00%,impossible,unknown
+71,TRUE,Berlin,5,0,Telecom,Tokyo,12,3,Telecom,1.91,0.00%,impossible,unknown
+72,TRUE,New York,4,2,Telecom,Vancouver,10,3,Hosting/server,0.64,36.00%,impossible,unknown
+73,TRUE,Los Angeles,6,2,Telecom,Toronto,2,100+,Telecom,0.81,0.00%,password guessing,unknown
