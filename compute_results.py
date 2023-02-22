@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import os
 import pandas as pd
+import scipy.stats as stats
 from openpyxl import load_workbook
 
 # Constants that may need to be changed based on local machine configuration
@@ -217,6 +218,13 @@ def tlx(filename, users):
     df = df.merge(users, how='left', on='username')
     df = df[df['25th percentile'] == False]
     # print(df.to_string())
+
+    far50 = df[df['group'] == 1]
+    far86 = df[df['group'] == 3]
+    deps =['mental','physical', 'temporal', 'performance', 'effort', 'frustration']
+    for d in deps:
+        res = stats.mannwhitneyu(far50[d], far86[d])
+        print(d, res)
     print(df.groupby(['group']).agg(['mean', 'median']).to_string())
 
 
