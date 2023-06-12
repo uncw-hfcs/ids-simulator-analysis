@@ -233,6 +233,16 @@ def tlx(filename, users):
     for d in deps:
         res = stats.mannwhitneyu(far50[d], far86[d])
         print(d, res)
+
+    print("NASA TLX overall values")
+    print("Mean")
+    print(df[deps].mean())
+
+    print("Median")
+    print(df[deps].median())
+
+
+    print("NASA TLX group comparison")
     tab = df[['mental','physical', 'temporal', 'performance', 'effort', 'frustration','group']].groupby(['group']).agg(['mean', 'median'])
     print(tab.to_string())
 
