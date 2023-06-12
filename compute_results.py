@@ -193,13 +193,21 @@ def event_decision_time(filename, users):
     print(event_decision[['username', 'event_id', 'time_to_first_decide']].head().to_string())
 
     grouped = event_decision.groupby(['username'])
-    time_to_first_decision = pd.DataFrame(columns=list(range(52)))
 
-    # create a dataframe where the row indices are users and the columns are time to decide
-    # an event for the order the events were decided in
+    # create a dataframe where the row indices are users and the columns are
+    # "time to decide an event" for the order the events were decided in
+    lst = []
+    ids = []
     for name, group in grouped:
+        # "name" is the user id
+        # "group" is a df with each decision they made as a row
+
+        # "values" is a series of the time_to_first_decide for "name" user id
         values = group['time_to_first_decide'].rename(name).reset_index(drop=True)
-        time_to_first_decision = time_to_first_decision.append(values)
+        ids.append(name)
+        lst.append(values)
+
+    time_to_first_decision = pd.DataFrame(lst, columns=list(range(52)))
 
     # filter out the 25th percentile
     filter = list(users[users['25th percentile'] == True]['username'])
@@ -225,7 +233,8 @@ def tlx(filename, users):
     for d in deps:
         res = stats.mannwhitneyu(far50[d], far86[d])
         print(d, res)
-    print(df.groupby(['group']).agg(['mean', 'median']).to_string())
+    tab = df[['mental','physical', 'temporal', 'performance', 'effort', 'frustration','group']].groupby(['group']).agg(['mean', 'median'])
+    print(tab.to_string())
 
 
 
