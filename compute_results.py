@@ -307,6 +307,30 @@ def analyze_fastest_quantile(users):
         print('=== 86% FAR ===')
         compute_stats(far86[far86['in_quantile'] == True], far86[far86['in_quantile'] == False])
 
+def _printab(first, second, third):
+    if isinstance(second, float) and isinstance(third, float):
+        print(f'{first:<10} {second:>7.2f} {third:>7.2f}')
+    else:
+        print(f'{first:10} {second:>10} {third:>10}')
+
+
+def performance_basic_stats(users: pd.DataFrame):
+    df = users.copy()
+
+    far50 = df[df['group'] == 1]
+    far86 = df[df['group'] == 3]
+
+    _printab(' ', "50% FAR", "86% FAR")
+    _printab('n', len(far50), len(far86))
+    outcomes = ['sensitivity', 'precision', 'time_on_task']
+    for o in outcomes:
+        print(o, '-----')
+        _printab('mean', far50[o].mean(), far86[o].mean())
+        _printab('median', far50[o].median(), far86[o].median())
+        _printab('\u03C3', far50[o].std(), far86[o].std())
+        _printab('min', far50[o].min(), far86[o].min())
+        _printab('max', far50[o].max(), far86[o].max())
+
 
 if __name__ == "__main__":
 
@@ -320,7 +344,10 @@ if __name__ == "__main__":
 
     analyze_fastest_quantile(_users)
     decision_time = event_decision_time(_filename, _users[['username', 'group', '25th percentile']])
+
     tlx(_filename, _users[['username', 'group', '25th percentile']])
+    performance_basic_stats(_users)
+
 
     excel_file = excel_dir / f"{_filename}_decision_time.xlsx"
 
