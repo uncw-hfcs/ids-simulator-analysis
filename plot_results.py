@@ -1,12 +1,21 @@
+"""
+Plotting functions for the 'users' and 'decision_time' dataframes from compute_results.py.
+
+The plotting functions can be invoked directly from compute_results.py's __main__ function.
+
+Running this module stand-alone will load the 'users' and 'decision_time' dataframes
+from the Excel files outputted by compute_results.py.
+"""
+
+import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import os
 import pandas as pd
 import seaborn as sns
 
 sns.set_palette("pastel")
-sns.set(font_scale = 1.5)
+sns.set(font_scale=1.5)
 # sns.set(rc={"font.size":12,"axes.titlesize":14,"axes.labelsize":12})
 # sns.set(rc={"font.size":24,"axes.titlesize":24,"axes.labelsize":24})
 
@@ -15,7 +24,21 @@ if not os.path.exists(PLOT_DIR):
     os.makedirs(PLOT_DIR)
 
 
-def _plot(df, x, y, title=None, title_suffix='', file_suffix='', **kwargs):
+def _boxplot(df: pd.DataFrame, x: str, y: str, title: str = None, title_suffix: str = '', file_suffix: str = '',
+             **kwargs) -> None:
+    """
+    Utility function for creating grouped box-and-whisker plots. Plots are
+    saved to PLOT_DIR with an automatically-generated filename in PNG format.
+
+    :param df: the source dataframe
+    :param x: name of the column with groups
+    :param y: name of the column to plot
+    :param title: optional plot title, e.g., "Sensitivity"
+    :param title_suffix: optional title suffix, e.g., "25th percentile removed"
+    :param file_suffix: optional filename suffix, e.g., "25th percentile removed"
+    :param kwargs: passthrough to seanborn plotting
+    :return: None
+    """
     if not title:
         title = y.title()
     if title_suffix:
@@ -30,32 +53,37 @@ def _plot(df, x, y, title=None, title_suffix='', file_suffix='', **kwargs):
 
 def plot_user_results(df):
     df['group'] = df['group'].astype({'group': 'str'}).map({'1': '50% FAR', '3': '86% FAR'})
-    df['time on task percentile'] = df['25th percentile'].astype({'25th percentile': 'str'}).map({'True': '25th%', 'False': 'Others'})
+    df['time on task percentile'] = df['25th percentile'].astype({'25th percentile': 'str'}).map(
+        {'True': '25th%', 'False': 'Others'})
     max_time = max(df['time_on_task'])
 
     # Performance measures - whole group
-    _plot(df, x="group", y="sensitivity", ylim=(-0.05, 1.05))
-    _plot(df, x="group", y="specificity", ylim=(-0.05, 1.05))
-    _plot(df, x="group", y="precision", ylim=(-0.05, 1.05), xlabel='')
-    _plot(df, x="group", y="time_on_task", ylim=(-0.05, max_time+1), title='Time on Task (Minutes)')
+    _boxplot(df, x="group", y="sensitivity", ylim=(-0.05, 1.05))
+    _boxplot(df, x="group", y="specificity", ylim=(-0.05, 1.05))
+    _boxplot(df, x="group", y="precision", ylim=(-0.05, 1.05), xlabel='')
+    _boxplot(df, x="group", y="time_on_task", ylim=(-0.05, max_time + 1), title='Time on Task (Minutes)')
 
     # Performance measures - 25% vs rest
-    _plot(df, x='time on task percentile', y="sensitivity", ylim=(-0.05, 1.05), title_suffix='Time on Task effects')
-    _plot(df, x='time on task percentile', y="specificity", ylim=(-0.05, 1.05), title_suffix='Time on Task effects')
-    _plot(df, x='time on task percentile', y="precision", ylim=(-0.05, 1.05), title_suffix='Time on Task effects')
-    _plot(df, x='time on task percentile', y="time_on_task", ylim=(-0.05, max_time+1), title='Time on Task (Minutes)')
-
+    # _boxplot(df, x='time on task percentile', y="sensitivity", ylim=(-0.05, 1.05), title_suffix='Time on Task effects')
+    # _boxplot(df, x='time on task percentile', y="specificity", ylim=(-0.05, 1.05), title_suffix='Time on Task effects')
+    # _boxplot(df, x='time on task percentile', y="precision", ylim=(-0.05, 1.05), title_suffix='Time on Task effects')
+    # _boxplot(df, x='time on task percentile', y="time_on_task", ylim=(-0.05, max_time + 1),
+    #          title='Time on Task (Minutes)')
 
     # Perf measure - 25% removed
-    print(df.groupby(['group', 'time on task percentile']).size())
-    df = df[df['time on task percentile'] == 'Others']
-
-    _plot(df, x="group", y="sensitivity", ylim=(-0.05, 1.05), title_suffix='25th% removed', file_suffix='_25th_removed')
-    _plot(df, x="group", y="specificity", ylim=(-0.05, 1.05), title_suffix='25th% removed', file_suffix='_25th_removed')
-    _plot(df, x="group", y="precision", ylim=(-0.05, 1.05), title_suffix='25th% removed', file_suffix='_25th_removed')
-    _plot(df, x="group", y="time_on_task", ylim=(-0.05, max_time+1), title_suffix='25th% removed', title='Time on Task (Minutes)', file_suffix='_25th_removed')
-
-    print(df.head().to_string())
+    # print(df.groupby(['group', 'time on task percentile']).size())
+    # df = df[df['time on task percentile'] == 'Others']
+    #
+    # _boxplot(df, x="group", y="sensitivity", ylim=(-0.05, 1.05), title_suffix='25th% removed',
+    #          file_suffix='_25th_removed')
+    # _boxplot(df, x="group", y="specificity", ylim=(-0.05, 1.05), title_suffix='25th% removed',
+    #          file_suffix='_25th_removed')
+    # _boxplot(df, x="group", y="precision", ylim=(-0.05, 1.05), title_suffix='25th% removed',
+    #          file_suffix='_25th_removed')
+    # _boxplot(df, x="group", y="time_on_task", ylim=(-0.05, max_time + 1), title_suffix='25th% removed',
+    #          title='Time on Task (Minutes)', file_suffix='_25th_removed')
+    #
+    # print(df.head().to_string())
 
 
 def plot_decision_time(df):
@@ -68,7 +96,10 @@ def plot_decision_time(df):
     plt.savefig(PLOT_DIR / "event_decision_time.png")
     plt.show()
 
+
 if __name__ == "__main__":
+    # Runs off the Excel sheet generated by compute_results.py
+
     input_file = Path('excel') / "cry-wolf_20200125_14-35-09_patched_analysis.xlsx"
     users = pd.read_excel(input_file, sheet_name='users')
     plot_user_results(users)

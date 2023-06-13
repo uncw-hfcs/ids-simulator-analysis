@@ -4,7 +4,6 @@ import numpy as np
 import os
 import pandas as pd
 import scipy.stats as stats
-from openpyxl import load_workbook
 
 # Constants that may need to be changed based on local machine configuration
 HEROKU_APP = 'cry-wolf'
@@ -21,8 +20,13 @@ FALSE_ALARM = "Don't escalate"
 UNDECIDED = "I don't know"
 
 
-# Escalate, Don't escalate, I don't know
-def normalize_answer(event):
+def normalize_answer(event: pd.Series):
+    """
+    Normalizes Event table "should_escalate" values to same values stored
+    when the user makes a decision.
+    :param event: an alarm from the Cry Wolf data set as a Series with labeled columns.
+    :return: a string containing 'Escalate' or 'Don't escalate'
+    """
     if event['should_escalate'] == 1:
         return TRUE_ALARM
     return FALSE_ALARM
@@ -32,7 +36,7 @@ def calc_confusion(user, events, event_decisions):
     user_decisions = event_decisions[event_decisions.user == user.username]
     for decision in user_decisions.itertuples():
         answer = events[events.id == decision.event_id].should_escalate.item()
-        # Exclude I don't knows
+        # Exclude "I don't know"s
         if decision.escalate == UNDECIDED:
             user[decision.event_id] = 'IDK'
         elif answer == TRUE_ALARM:
@@ -60,18 +64,17 @@ def compute_results(filename):
 
     # Normalize 'should_escalate' column and 'event_decision' column values
     events['should_escalate'] = events.apply(normalize_answer, axis=1)
-    true_alarms = events[events.should_escalate == TRUE_ALARM]
-    false_alarms = events[events.should_escalate == FALSE_ALARM]
-    print(f"True alarms: {len(true_alarms)}, False alarms: {len(false_alarms)}")
+    print(f"True alarms: {len(events[events.should_escalate == TRUE_ALARM])}, "
+          f"False alarms: {len(events[events.should_escalate == FALSE_ALARM])}")
 
     # Create user dataframe to record users' correctness for each event
     users = pd.read_excel(input_file, sheet_name='User')
     users = users.dropna()
-    # Remove user 'awiv3' whose check_score == 2. It was determined to exclude him from analysis. 
-    # We keep check_score = 3 (typo) and = 0 because that user (wgff3) intionally picked wrong answers.
+    # Remove user 'awiv3' whose check_score == 2. It was determined to exclude them from analysis.
+    # We keep check_score = 3 (typo) and = 0 because that user (wgff3) intentionally picked wrong answers.
     # The check events (ids 74-75) are not included in correctness/confusion matrix.
     users = users[users.username != 'awiv3']
-    event_decisions[event_decisions.user != 'awiv3']
+    event_decisions = event_decisions[event_decisions.user != 'awiv3']
 
     # Get user time on task and determine whether the user is in the 25th percentile in time on task.
     # time_on_task will be timedelta64[ns] type
@@ -83,7 +86,7 @@ def compute_results(filename):
     # count number of events each user decided upon
     # get mean confidence as well
 
-    # Problem is confidence is object due to none values for I don't knows
+    # Problem is confidence is object due to none values for "I don't know"s
     event_decisions['confidence'] = pd.to_numeric(event_decisions['confidence'], errors='coerce', downcast='unsigned')
 
     dec_count = event_decisions[['user', 'event_id', 'confidence']] \
@@ -122,8 +125,6 @@ def compute_results(filename):
     users = users.merge(exp_groups, how='left', on='username')
     # print(users.head())
 
-    # TODO: Compute TLX
-
     # Convert time_on_task from timedelta64 to fractional minutes
     users['time_on_task'] = users['time_on_task'] / np.timedelta64(1, 'm')
 
@@ -132,7 +133,7 @@ def compute_results(filename):
 
 def compute_experience_group(user):
     GT_1year = ['1 - 5', '5 - 10', '10+']
-    # Cyber SEcurity = score >= 5 && > 1 year Security Experience
+    # Cyber Security = score >= 5 && > 1 year Security Experience
     # Network/IT admin = score >= 5 && > 1 year Network IT
     # Software development = > 1 year Software Development
     # Novice = score < 5 &  < 1yr software development
@@ -210,8 +211,8 @@ def event_decision_time(filename, users):
     time_to_first_decision = pd.DataFrame(lst, columns=list(range(52)))
 
     # filter out the 25th percentile
-    filter = list(users[users['25th percentile'] == True]['username'])
-    time_to_first_decision = time_to_first_decision.drop(filter)
+    # _filter = list(users[users['25th percentile'] == True]['username'])
+    # time_to_first_decision = time_to_first_decision.drop(_filter)
 
     time_to_first_decision = time_to_first_decision.transpose()
     time_to_first_decision['mean'] = time_to_first_decision.mean(axis=1)
@@ -224,12 +225,12 @@ def tlx(filename, users):
     df.rename(columns={'user': 'username'}, inplace=True)
     df = df[['username', 'mental', 'physical', 'temporal', 'performance', 'effort', 'frustration']]
     df = df.merge(users, how='left', on='username')
-    df = df[df['25th percentile'] == False]
+    # df = df[df['25th percentile'] == False]
     # print(df.to_string())
 
     far50 = df[df['group'] == 1]
     far86 = df[df['group'] == 3]
-    deps =['mental','physical', 'temporal', 'performance', 'effort', 'frustration']
+    deps = ['mental', 'physical', 'temporal', 'performance', 'effort', 'frustration']
     for d in deps:
         res = stats.mannwhitneyu(far50[d], far86[d])
         print(d, res)
@@ -241,11 +242,70 @@ def tlx(filename, users):
     print("Median")
     print(df[deps].median())
 
-
     print("NASA TLX group comparison")
-    tab = df[['mental','physical', 'temporal', 'performance', 'effort', 'frustration','group']].groupby(['group']).agg(['mean', 'median'])
+    tab = df[['mental', 'physical', 'temporal', 'performance', 'effort', 'frustration', 'group']].groupby(
+        ['group']).agg(['mean', 'median'])
     print(tab.to_string())
 
+
+def compute_stats(x, y):
+    deps = ['time_on_task', 'sensitivity', 'precision', 'correctness', 'specificity', 'confidence']
+    for dep in deps:
+        U1, p = stats.mannwhitneyu(x[dep], y[dep])
+        nx = len(x[dep])
+        ny = len(y[dep])
+        U2 = nx * ny - U1
+        # print(U1, U2)
+
+        # U is the smallest of the U values
+        U = U1 if U1 < U2 else U2
+        effect = 1 - ((2 * U) / (nx * ny))
+        # print(dep, res, res.statistic)
+        #
+        print(
+            f"{dep} -- mean(x):{x[dep].mean():.2f}, mean(y):{y[dep].mean():.2f} U1:{U1}, p:{p}, n1:{nx} n2:{ny} effect: {effect:.3}")
+        # plt.hist(far50[dep], edgecolor='black', bins=20)
+        # plt.show()
+        # plt.hist(far86[dep], edgecolor='black', bins=20)
+
+
+def analyze_fastest_quantile(users):
+    print("---- Comparison of all participants")
+    # group 1 = 50% FAR, group 3 = 86% FAR
+    far50 = users[users['group'] == 1]
+    far86 = users[users['group'] == 3]
+
+    compute_stats(far50, far86)
+
+    print("---- Comparison excluding fastest 25% of participants")
+    # group 1 = 50% FAR, group 3 = 86% FAR
+    df = users.copy()
+    df = df[df['25th percentile'] == False]
+
+    far50 = df[df['group'] == 1]
+    far86 = df[df['group'] == 3]
+
+    compute_stats(far50, far86)
+
+    quantiles = [0.1, 0.15, 0.2, 0.25, 0.30]
+
+    for q in quantiles:
+        df = users.copy()
+
+        print(f"---- Fastest {q * 100:.0f}% vs others")
+
+        quart = np.quantile(users.time_on_task, q)
+        print(f"Time on task {q * 100:.0f}th percentile: {quart:.2f} minutes")
+        df['in_quantile'] = np.where(df.time_on_task <= quart, True, False)
+
+        far50 = df[df['group'] == 1]
+        far86 = df[df['group'] == 3]
+
+        print('=== 50% FAR ===')
+        compute_stats(far50[far50['in_quantile'] == True], far50[far50['in_quantile'] == False])
+
+        print('=== 86% FAR ===')
+        compute_stats(far86[far86['in_quantile'] == True], far86[far86['in_quantile'] == False])
 
 
 if __name__ == "__main__":
@@ -255,21 +315,19 @@ if __name__ == "__main__":
         os.makedirs(excel_dir)
 
     # Use the patched workbook, which correctly labels the 4 eurotrip alerts as TRUE alarms
-    filename = 'cry-wolf_20200125_14-35-09_patched'
-    users = compute_results(filename)
-    decision_time = event_decision_time(filename, users[['username', 'group', '25th percentile']])
-    tlx(filename, users[['username', 'group', '25th percentile']])
-    exit(0)
+    _filename = 'cry-wolf_20200125_14-35-09_patched'
+    _users = compute_results(_filename)
 
-    excel_file = excel_dir / f"{filename}_decision_time.xlsx"
+    analyze_fastest_quantile(_users)
+    decision_time = event_decision_time(_filename, _users[['username', 'group', '25th percentile']])
+    tlx(_filename, _users[['username', 'group', '25th percentile']])
+
+    excel_file = excel_dir / f"{_filename}_decision_time.xlsx"
+
+    # BUG: For whatever reason, it is shifting the header row over one...
     with pd.ExcelWriter(excel_file, engine='openpyxl', datetime_format='hh:mm:ss') as writer:
         decision_time.to_excel(writer, sheet_name="event_decision_time", index=False)
-        writer.save()
 
-    excel_file = excel_dir / f"{filename}_analysis.xlsx"
+    excel_file = excel_dir / f"{_filename}_analysis.xlsx"
     with pd.ExcelWriter(excel_file, engine='openpyxl', datetime_format='hh:mm:ss') as writer:
-        book = load_workbook(excel_file)
-        writer.book = book
-        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
-        users.to_excel(writer, "users", index=False)
-        writer.save()
+        _users.to_excel(writer, sheet_name="users", index=False)
