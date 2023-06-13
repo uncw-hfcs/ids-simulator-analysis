@@ -204,11 +204,11 @@ def event_decision_time(filename, users):
         # "group" is a df with each decision they made as a row
 
         # "values" is a series of the time_to_first_decide for "name" user id
-        values = group['time_to_first_decide'].rename(name).reset_index(drop=True)
-        ids.append(name)
+        values = group['time_to_first_decide'].reset_index(drop=True)
+        ids.append(name[0])
         lst.append(values)
 
-    time_to_first_decision = pd.DataFrame(lst, columns=list(range(52)))
+    time_to_first_decision = pd.DataFrame(lst, index=ids, columns=list(range(52)))
 
     # filter out the 25th percentile
     # _filter = list(users[users['25th percentile'] == True]['username'])
@@ -324,7 +324,6 @@ if __name__ == "__main__":
 
     excel_file = excel_dir / f"{_filename}_decision_time.xlsx"
 
-    # BUG: For whatever reason, it is shifting the header row over one...
     with pd.ExcelWriter(excel_file, engine='openpyxl', datetime_format='hh:mm:ss') as writer:
         decision_time.to_excel(writer, sheet_name="event_decision_time", index=False)
 
