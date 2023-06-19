@@ -240,12 +240,18 @@ def tlx(filename, users):
     df.rename(columns={'user': 'username'}, inplace=True)
     df = df[['username', 'mental', 'physical', 'temporal', 'performance', 'effort', 'frustration']]
     df = df.merge(users, how='left', on='username')
+
+    deps = ['mental', 'physical', 'temporal', 'performance', 'effort', 'frustration']
+    # Convert from 1-10 scale to 1-7
+    # df[deps] = df[deps].apply(lambda x: 1/3 + ((2/3)*x))
+    # Flip the 'Performance' to it's original, which is 1: better performance, 7: poor performance
+    df['performance'] = 11 - df['performance']
+
     # df = df[df['25th percentile'] == False]
     # print(df.to_string())
 
     far50 = df[df['group'] == 1]
     far86 = df[df['group'] == 3]
-    deps = ['mental', 'physical', 'temporal', 'performance', 'effort', 'frustration']
     for d in deps:
         res = stats.mannwhitneyu(far50[d], far86[d])
         print(d, res)
@@ -359,14 +365,15 @@ if __name__ == "__main__":
     _filename = 'cry-wolf_20200125_14-35-09_patched'
     _users = compute_results(_filename)
 
-    analyze_fastest_quantile(_users)
+    # analyze_fastest_quantile(_users)
     decision_time = event_decision_time(_filename, _users[['username', 'group', '25th percentile']])
 
     tlx(_filename, _users[['username', 'group', '25th percentile']])
-    performance_basic_stats(_users, ['sensitivity', 'precision', 'time_on_task'])
+    # performance_basic_stats(_users, ['sensitivity', 'precision', 'time_on_task'])
+
+    exit(0)
 
     excel_file = excel_dir / f"{_filename}_decision_time.xlsx"
-
     with pd.ExcelWriter(excel_file, engine='openpyxl', datetime_format='hh:mm:ss') as writer:
         decision_time.to_excel(writer, sheet_name="event_decision_time", index=False)
 
