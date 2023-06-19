@@ -1,4 +1,6 @@
 from pathlib import Path
+from typing import List
+
 
 import numpy as np
 import os
@@ -175,7 +177,7 @@ def determine_user_groups(filename):
 # def get_order_of_first_event_clicks(clicks):
 
 
-def event_decision_time(filename, users):
+def event_decision_time(filename: str, users: pd.DataFrame) -> pd.DataFrame:
     file = Path('backups') / f"{filename}.xlsx"
 
     # Filter on first clicks on each event for each user
@@ -191,7 +193,7 @@ def event_decision_time(filename, users):
     event_decision = event_decision.merge(event_clicked, how='left', on=['username', 'event_id'])
     event_decision['time_to_first_decide'] = event_decision['time_event_decision'] - event_decision['time_event_click']
 
-    print(event_decision[['username', 'event_id', 'time_to_first_decide']].head().to_string())
+    # print(event_decision[['username', 'event_id', 'time_to_first_decide']].head().to_string())
 
     grouped = event_decision.groupby(['username'])
 
@@ -208,15 +210,28 @@ def event_decision_time(filename, users):
         ids.append(name[0])
         lst.append(values)
 
-    time_to_first_decision = pd.DataFrame(lst, index=ids, columns=list(range(52)))
+    df = pd.DataFrame(lst, index=ids, columns=list(range(52)))
 
     # filter out the 25th percentile
     # _filter = list(users[users['25th percentile'] == True]['username'])
     # time_to_first_decision = time_to_first_decision.drop(_filter)
 
-    time_to_first_decision = time_to_first_decision.transpose()
-    time_to_first_decision['mean'] = time_to_first_decision.mean(axis=1)
-    return time_to_first_decision
+    # Calculate the mean event decision time per user
+    df['mean_time_per_user'] = df.mean(axis=1)
+
+    # Add group column.
+    groups = users.merge(df, right_index=True, left_on="username")
+    # Convert mean to float
+    groups['mean_time_per_user'] = groups['mean_time_per_user'].apply(lambda x: x.total_seconds())
+
+    # Compute the mean decision times per group
+    performance_basic_stats(groups, ['mean_time_per_user'])
+    compute_stats(groups[groups['group'] == 1],groups[groups['group'] == 3], ['mean_time_per_user'])
+
+    df.drop('mean_time_per_user', axis=1)
+    df = df.transpose()
+    df['mean'] = df.mean(axis=1)
+    return df
 
 
 def tlx(filename, users):
@@ -248,8 +263,8 @@ def tlx(filename, users):
     print(tab.to_string())
 
 
-def compute_stats(x, y):
-    deps = ['time_on_task', 'sensitivity', 'precision', 'correctness', 'specificity', 'confidence']
+def compute_stats(x: pd.DataFrame, y: pd.DataFrame, deps: List[str]):
+
     for dep in deps:
         U1, p = stats.mannwhitneyu(x[dep], y[dep])
         nx = len(x[dep])
@@ -275,7 +290,8 @@ def analyze_fastest_quantile(users):
     far50 = users[users['group'] == 1]
     far86 = users[users['group'] == 3]
 
-    compute_stats(far50, far86)
+    deps = ['time_on_task', 'sensitivity', 'precision', 'correctness', 'specificity', 'confidence']
+    compute_stats(far50, far86, deps)
 
     print("---- Comparison excluding fastest 25% of participants")
     # group 1 = 50% FAR, group 3 = 86% FAR
@@ -285,7 +301,7 @@ def analyze_fastest_quantile(users):
     far50 = df[df['group'] == 1]
     far86 = df[df['group'] == 3]
 
-    compute_stats(far50, far86)
+    compute_stats(far50, far86, deps)
 
     quantiles = [0.1, 0.15, 0.2, 0.25, 0.30]
 
@@ -302,28 +318,29 @@ def analyze_fastest_quantile(users):
         far86 = df[df['group'] == 3]
 
         print('=== 50% FAR ===')
-        compute_stats(far50[far50['in_quantile'] == True], far50[far50['in_quantile'] == False])
+        compute_stats(far50[far50['in_quantile'] == True], far50[far50['in_quantile'] == False], deps)
 
         print('=== 86% FAR ===')
-        compute_stats(far86[far86['in_quantile'] == True], far86[far86['in_quantile'] == False])
+        compute_stats(far86[far86['in_quantile'] == True], far86[far86['in_quantile'] == False], deps)
+
 
 def _printab(first, second, third):
     if isinstance(second, float) and isinstance(third, float):
         print(f'{first:<10} {second:>7.2f} {third:>7.2f}')
     else:
-        print(f'{first:10} {second:>10} {third:>10}')
+        print(f'{str(first):10} {str(second):>10} {str(third):>10}')
 
 
-def performance_basic_stats(users: pd.DataFrame):
-    df = users.copy()
+def performance_basic_stats(_df: pd.DataFrame, cols: List[str]):
+    df = _df.copy()
 
     far50 = df[df['group'] == 1]
     far86 = df[df['group'] == 3]
 
     _printab(' ', "50% FAR", "86% FAR")
     _printab('n', len(far50), len(far86))
-    outcomes = ['sensitivity', 'precision', 'time_on_task']
-    for o in outcomes:
+
+    for o in cols:
         print(o, '-----')
         _printab('mean', far50[o].mean(), far86[o].mean())
         _printab('median', far50[o].median(), far86[o].median())
@@ -346,8 +363,7 @@ if __name__ == "__main__":
     decision_time = event_decision_time(_filename, _users[['username', 'group', '25th percentile']])
 
     tlx(_filename, _users[['username', 'group', '25th percentile']])
-    performance_basic_stats(_users)
-
+    performance_basic_stats(_users, ['sensitivity', 'precision', 'time_on_task'])
 
     excel_file = excel_dir / f"{_filename}_decision_time.xlsx"
 

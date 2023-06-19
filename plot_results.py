@@ -44,7 +44,8 @@ def _boxplot(df: pd.DataFrame, x: str, y: str, title: str = None, title_suffix: 
     if title_suffix:
         title_suffix = u' \u2014 ' + title_suffix
     ax = sns.boxplot(x=x, y=y, width=0.5, data=df)
-    ax.set_title(title + title_suffix)
+    # Suppress figure title for APA7
+    # ax.set_title(title + title_suffix)
     ax.set(**kwargs)
     plt.tight_layout()
     plt.savefig(PLOT_DIR / (x.replace(' ', '_') + '-' + y.replace(' ', '_') + file_suffix + ".png"))
@@ -58,10 +59,10 @@ def plot_user_results(df):
     max_time = max(df['time_on_task'])
 
     # Performance measures - whole group
-    _boxplot(df, x="group", y="sensitivity", ylim=(-0.05, 1.05))
-    _boxplot(df, x="group", y="specificity", ylim=(-0.05, 1.05))
-    _boxplot(df, x="group", y="precision", ylim=(-0.05, 1.05), xlabel='')
-    _boxplot(df, x="group", y="time_on_task", ylim=(-0.05, max_time + 1), title='Time on Task (Minutes)')
+    _boxplot(df, x="group", y="sensitivity", ylim=(-0.05, 1.05), xlabel='', ylabel='Sensitivity')
+    _boxplot(df, x="group", y="specificity", ylim=(-0.05, 1.05), xlabel='', ylabel='Specificity')
+    _boxplot(df, x="group", y="precision", ylim=(-0.05, 1.05), xlabel = '', ylabel='Precision')
+    _boxplot(df, x="group", y="time_on_task", ylim=(-0.05, max_time + 1), ylabel="Total Time on Task (m)")
 
     # Performance measures - 25% vs rest
     # _boxplot(df, x='time on task percentile', y="sensitivity", ylim=(-0.05, 1.05), title_suffix='Time on Task effects')
@@ -89,9 +90,10 @@ def plot_user_results(df):
 def plot_decision_time(df):
     df['mean'] = pd.to_timedelta(df['mean'], unit='day').dt.total_seconds()
     ax = sns.regplot(data=df.reset_index(), x='index', y='mean', lowess=True, line_kws={'color': 'red'})
-    ax.set_title("Mean time to make a decision")
-    ax.set_xlabel("order of events")
-    ax.set_ylabel("mean time to decide (s)")
+    # Suppress title for APA7
+    # ax.set_title("Mean Time to Make a Decision (s)")
+    ax.set_xlabel("Order of Events")
+    ax.set_ylabel("Mean Time to Decide (s)")
     plt.tight_layout()
     plt.savefig(PLOT_DIR / "event_decision_time.png")
     plt.show()
