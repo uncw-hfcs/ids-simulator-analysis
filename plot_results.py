@@ -62,7 +62,7 @@ def plot_user_results(df):
     _boxplot(df, x="group", y="sensitivity", ylim=(-0.05, 1.05), xlabel='', ylabel='Sensitivity')
     _boxplot(df, x="group", y="specificity", ylim=(-0.05, 1.05), xlabel='', ylabel='Specificity')
     _boxplot(df, x="group", y="precision", ylim=(-0.05, 1.05), xlabel = '', ylabel='Precision')
-    _boxplot(df, x="group", y="time_on_task", ylim=(-0.05, max_time + 1), ylabel="Total Time on Task (m)")
+    _boxplot(df, x="group", y="time_on_task", ylim=(-0.05, max_time + 1), xlabel='', ylabel="Total Time on Task (m)")
 
     # Performance measures - 25% vs rest
     # _boxplot(df, x='time on task percentile', y="sensitivity", ylim=(-0.05, 1.05), title_suffix='Time on Task effects')
