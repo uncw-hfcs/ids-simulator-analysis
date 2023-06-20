@@ -1,3 +1,6 @@
+"""
+This script produces information on how many event decisions were recorded, including the number of changed decisions.
+"""
 from pathlib import Path
 
 import openpyxl
