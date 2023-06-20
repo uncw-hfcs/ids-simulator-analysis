@@ -63,15 +63,22 @@ for row in event_sheet.iter_rows(min_row=2):
 print(f"Number of unique event decisions: {event_decision_count}")
 print(f"Number of resubmitted event decisions: {resubmit_count}")
 print(f"Number of unique users: {len(users.keys())}")
-print("Users+event ids with changes on resubmit:")
 
+# Count unique decisions (not unchanged resubmissions) and provide eventdecision changed info
+print("\nUsers+event ids with changes on resubmit:")
 count_changed = 0
 count_changed_events = 0
-
 change_counts_by_user = {}
-
+total_i_dont_knows = 0
+total_unique_decisions = 0
 for user, v in users.items():
     for event_id, decisions in v.items():
+        total_unique_decisions += len(decisions)
+        # Count final alarm decisions that were "I don't know"
+        if sorted(list(decisions))[-1].decision == "I don't know":
+            total_i_dont_knows += 1
+
+        # Gather info on which users changed their decisions
         if len(decisions) > 1:
             if user in change_counts_by_user:
                 change_counts_by_user[user] += 1
@@ -79,8 +86,11 @@ for user, v in users.items():
                 change_counts_by_user[user] = 1
             count_changed += len(decisions) - 1
             count_changed_events += 1
+
             print(sorted(decisions))
 
+print(f"Total number of unique decisions: {total_unique_decisions}")
+print(f"Total number of final decisions that were \"I don't know\": {total_i_dont_knows}")
 print(f"Number of changes on resubmit: {count_changed}")
 print(f"Number of unique events that were changed: {count_changed_events}")
 print(f"Users who changed their answers: {change_counts_by_user}")
