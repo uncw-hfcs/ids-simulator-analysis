@@ -369,7 +369,7 @@ if __name__ == "__main__":
     decision_time = event_decision_time(_filename, _users[['username', 'group', '25th percentile']])
 
     tlx(_filename, _users[['username', 'group', '25th percentile']])
-    # performance_basic_stats(_users, ['sensitivity', 'precision', 'time_on_task'])
+    performance_basic_stats(_users, ['sensitivity', 'precision', 'time_on_task', 'correctness'])
 
     exit(0)
 
